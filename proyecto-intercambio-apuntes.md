@@ -70,7 +70,7 @@ Es clave para resolver ciertos aspectos del modelo, los procedimientos y funcion
 
 Un índice es una estructura que acelera la recuperación de información en una tabla, funcionando de manera similar al índice de un libro. Gracias a ellos, no es necesario recorrer fila por fila cada vez que se ejecuta una consulta. Existen distintos tipos de índices, como los agrupados, no agrupados y compuestos, que se aplican según la naturaleza de las consultas.
 La principal ventaja de los índices es que mejoran notablemente el rendimiento en búsquedas frecuentes o sobre grandes volúmenes de datos. Sin embargo, también generan un costo en almacenamiento y actualizaciones, por lo que deben diseñarse con criterio.
-Los índices resultan clave para optimizar las consultas relacionadas con la búsqueda de materiales. Dado que los usuarios suelen filtrar por carrera, materia o tipo de archivo, contar con índices adecuados permitirá acelerar estas operaciones y mejorar la experiencia de uso de la plataforma.
+Los índices resultan clave para la optimizacion de las consultas relacionadas con la búsqueda de materiales. Dado que los usuarios suelen filtrar por carrera, materia o tipo de archivo, contar con índices adecuados permitirá acelerar estas operaciones y mejorar la experiencia de uso de la plataforma.
 
 # CAPÍTULO IV – MARCO CONCEPTUAL O REFERENCIAL 
 
@@ -81,3 +81,4 @@ Los índices resultan clave para optimizar las consultas relacionadas con la bú
 ## Diccionario de datos
 
 [Ver documento PDF - DICCIONARIO DE DATOS](doc/diccionario_datos.pdf)
+

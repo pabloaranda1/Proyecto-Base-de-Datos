@@ -12,7 +12,7 @@
 **Materia:** Base de Datos  
 **Carrera:** Licenciatura en Sistemas de Información  
 
-# CAPÍTULO I: INTRODUCCIÓN
+# CAPÍTULO I: INTRODUCCIÓN.
 
 ## 1.2. Tema del sistema
 
@@ -81,4 +81,5 @@ Los índices resultan clave para la optimizacion de las consultas relacionadas c
 ## Diccionario de datos
 
 [Ver documento PDF - DICCIONARIO DE DATOS](doc/diccionario_datos.pdf)
+
 

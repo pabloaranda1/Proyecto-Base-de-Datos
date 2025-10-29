@@ -3,10 +3,10 @@
 # Sistema de intercambio de apuntes
 
 ### Participantes:
-- Acosta, Lara  
-- Aranda, Pablo  
-- Benitez, Valentina  
-- Bolo, Tomas  
+- Acosta, Lara
+- Aranda, Pablo
+- Benitez, Valentina
+- Bolo, Tomas
 
 **Profesor:** Dario O. VILLEGAS  
 **Materia:** Base de Datos  

@@ -13,6 +13,7 @@ CREATE TABLE Pais (
 );
 
 
+
 -- TABLA: Ciudad
  
 CREATE TABLE Ciudad (

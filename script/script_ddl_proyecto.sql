@@ -9,7 +9,7 @@ GO
 
 CREATE TABLE Pais (
     id_pais INT IDENTITY(1,1) PRIMARY KEY,
-    nombre NVARCHAR(100) NOT NULL
+    nombre NVARCHAR(200) NOT NULL
 );
 
 
@@ -17,7 +17,7 @@ CREATE TABLE Pais (
  
 CREATE TABLE Ciudad (
     id_ciudad INT IDENTITY(1,1) PRIMARY KEY,
-    nombre NVARCHAR(100) NOT NULL,
+    nombre NVARCHAR(200) NOT NULL,
     id_pais INT NOT NULL,
     CONSTRAINT FK_Ciudad_Pais FOREIGN KEY (id_pais) REFERENCES Pais(id_pais)
 );
@@ -27,8 +27,8 @@ CREATE TABLE Ciudad (
  
 CREATE TABLE Universidad (
     id_universidad INT IDENTITY(1,1) PRIMARY KEY,
-    nombre NVARCHAR(150) NOT NULL,
-    facultad NVARCHAR(150),
+    nombre NVARCHAR(200) NOT NULL,
+    facultad NVARCHAR(200),
     id_pais INT NOT NULL,
     CONSTRAINT FK_Universidad_Pais FOREIGN KEY (id_pais) REFERENCES Pais(id_pais)
 );
@@ -38,7 +38,7 @@ CREATE TABLE Universidad (
  
 CREATE TABLE Carrera (
     id_carrera INT IDENTITY(1,1) PRIMARY KEY,
-    nombre NVARCHAR(150) NOT NULL,
+    nombre NVARCHAR(200) NOT NULL,
     id_universidad INT NOT NULL,
     CONSTRAINT FK_Carrera_Universidad FOREIGN KEY (id_universidad) REFERENCES Universidad(id_universidad)
 );
@@ -48,7 +48,7 @@ CREATE TABLE Carrera (
  
 CREATE TABLE Rol (
     id_rol INT IDENTITY(1,1) PRIMARY KEY,
-    nombre_rol NVARCHAR(100) NOT NULL
+    nombre_rol NVARCHAR(200) NOT NULL
 );
 
  
@@ -56,12 +56,13 @@ CREATE TABLE Rol (
  
 CREATE TABLE Usuario (
     id_usuario INT IDENTITY(1,1) PRIMARY KEY,
-    correo NVARCHAR(150) NOT NULL UNIQUE,
-    contraseña NVARCHAR(255) NOT NULL,
+    correo NVARCHAR(200) NOT NULL,
+    contraseña NVARCHAR(200) NOT NULL,
     fecha_registro DATE NOT NULL DEFAULT GETDATE(),
     activo BIT NOT NULL DEFAULT 1,
     id_rol INT NOT NULL,
-    CONSTRAINT FK_Usuario_Rol FOREIGN KEY (id_rol) REFERENCES Rol(id_rol)
+    CONSTRAINT FK_Usuario_Rol FOREIGN KEY (id_rol) REFERENCES Rol(id_rol),
+    CONSTRAINT UQ_Usuario_correo UNIQUE (correo) REFERENCES Usuario(correo)
 );
 
  

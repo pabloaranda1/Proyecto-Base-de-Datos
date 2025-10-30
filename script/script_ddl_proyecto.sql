@@ -19,7 +19,7 @@ CREATE TABLE Ciudad (
     id_ciudad INT IDENTITY(1,1) PRIMARY KEY,
     nombre NVARCHAR(100) NOT NULL,
     id_pais INT NOT NULL,
-    FOREIGN KEY (id_pais) REFERENCES Pais(id_pais)
+    CONSTRAINT FK_Ciudad_Pais FOREIGN KEY (id_pais) REFERENCES Pais(id_pais)
 );
 
  
@@ -30,7 +30,7 @@ CREATE TABLE Universidad (
     nombre NVARCHAR(150) NOT NULL,
     facultad NVARCHAR(150),
     id_pais INT NOT NULL,
-    FOREIGN KEY (id_pais) REFERENCES Pais(id_pais)
+    CONSTRAINT FK_Universidad_Pais FOREIGN KEY (id_pais) REFERENCES Pais(id_pais)
 );
 
  
@@ -40,7 +40,7 @@ CREATE TABLE Carrera (
     id_carrera INT IDENTITY(1,1) PRIMARY KEY,
     nombre NVARCHAR(150) NOT NULL,
     id_universidad INT NOT NULL,
-    FOREIGN KEY (id_universidad) REFERENCES Universidad(id_universidad)
+    CONSTRAINT FK_Carrera_Universidad FOREIGN KEY (id_universidad) REFERENCES Universidad(id_universidad)
 );
 
  
@@ -61,7 +61,7 @@ CREATE TABLE Usuario (
     fecha_registro DATE NOT NULL DEFAULT GETDATE(),
     activo BIT NOT NULL DEFAULT 1,
     id_rol INT NOT NULL,
-    FOREIGN KEY (id_rol) REFERENCES Rol(id_rol)
+    CONSTRAINT FK_Usuario_Rol FOREIGN KEY (id_rol) REFERENCES Rol(id_rol)
 );
 
  
@@ -74,8 +74,8 @@ CREATE TABLE Perfil (
     reputacion DECIMAL(5,2) DEFAULT 0,
     id_usuario INT NOT NULL,
     id_carrera INT NOT NULL,
-    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
-    FOREIGN KEY (id_carrera) REFERENCES Carrera(id_carrera)
+    CONSTRAINT FK_Perfil_Uusario FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
+    CONSTRAINT FK_Perfil_Carrera FOREIGN KEY (id_carrera) REFERENCES Carrera(id_carrera)
 );
 
  
@@ -92,8 +92,8 @@ CREATE TABLE Material (
     estado NVARCHAR(50),
     id_usuario INT NOT NULL,
     id_carrera INT NOT NULL,
-    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
-    FOREIGN KEY (id_carrera) REFERENCES Carrera(id_carrera)
+    CONSTRAINT FK_Material_Uusario FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
+    CONSTRAINT FK_Material_Carrera FOREIGN KEY (id_carrera) REFERENCES Carrera(id_carrera)
 );
 
  
@@ -104,8 +104,8 @@ CREATE TABLE Descarga (
     fecha_descarga DATETIME DEFAULT GETDATE(),
     id_material INT NOT NULL,
     id_usuario INT NOT NULL,
-    FOREIGN KEY (id_material) REFERENCES Material(id_material),
-    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
+    CONSTRAINT FK_Descarga_Material FOREIGN KEY (id_material) REFERENCES Material(id_material),
+    CONSTRAINT FK_Descarga_Uusario FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
 );
 
  
@@ -118,8 +118,8 @@ CREATE TABLE Valoracion (
     fecha_valoracion DATETIME DEFAULT GETDATE(),
     id_material INT NOT NULL,
     id_usuario INT NOT NULL,
-    FOREIGN KEY (id_material) REFERENCES Material(id_material),
-    FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
+    CONSTRAINT FK_Valoreacion_Material FOREIGN KEY (id_material) REFERENCES Material(id_material),
+    CONSTRAINT FK_Valoracion_Usuario FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
 );
 
  
@@ -132,6 +132,6 @@ CREATE TABLE Mensaje (
     leido BIT DEFAULT 0,
     id_usuario_receptor INT NOT NULL,
     id_usuario_emisor INT NOT NULL,
-    FOREIGN KEY (id_usuario_receptor) REFERENCES Usuario(id_usuario),
-    FOREIGN KEY (id_usuario_emisor) REFERENCES Usuario(id_usuario)
+    CONSTRAINT FK_Mensaje_Usuario FOREIGN KEY (id_usuario_receptor) REFERENCES Usuario(id_usuario),
+    CONSTRAINT FK_Mensaje_Usuario FOREIGN KEY (id_usuario_emisor) REFERENCES Usuario(id_usuario)
 );

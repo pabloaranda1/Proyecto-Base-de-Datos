@@ -1,85 +1,86 @@
 # UNIVERSIDAD NACIONAL DEL NORDESTE  
-## BASES DE DATOS I ñ PROYECTO DE ESTUDIO 
+## BASES DE DATOS I ‚Äì PROYECTO DE ESTUDIO 
 
-### Tema 3: OptimizaciÛn de consultas a travÈs de Ìndices   
+### Tema 3: Optimizaci√≥n de consultas a trav√©s de √≠ndices   
 **Grupo:** 41
-**AÒo:** 2025  
 
-## 1. IntroducciÛn
-En SQL Server, un Ìndice es una estructura auxiliar que el motor de la base de datos utiliza para localizar registros de forma m·s r·pida, evitando recorrer 
-toda la tabla. Esto reduce significativamente los tiempos de respuesta, especialmente en consultas con filtros, b˙squedas por rangos o grandes vol˙menes 
-de datos. De esta manera, la optimizaciÛn de consultas a travÈs de Ìndices se convierte en una tÈcnica fundamental en los sistemas de bases de datos 
-relacionales para mejorar el rendimiento y la eficiencia en el acceso a la informaciÛn.
+**A√±o:** 2025  
+
+## 1. Introducci√≥n
+En SQL Server, un √≠ndice es una estructura auxiliar que el motor de la base de datos utiliza para localizar registros de forma m√°s r√°pida, evitando recorrer 
+toda la tabla. Esto reduce significativamente los tiempos de respuesta, especialmente en consultas con filtros, b√∫squedas por rangos o grandes vol√∫menes 
+de datos. De esta manera, la optimizaci√≥n de consultas a trav√©s de √≠ndices se convierte en una t√©cnica fundamental en los sistemas de bases de datos 
+relacionales para mejorar el rendimiento y la eficiencia en el acceso a la informaci√≥n.
 
 
-### 2. Tipos de Ìndices
+### 2. Tipos de √≠ndices
 Algunos tipos de inices que exiten en SQL Server son:
-1. Õndice Agrupado (Clustered Index)
+1. √çndice Agrupado (Clustered Index)
 
-El Ìndice agrupado define el orden fÌsico en el que se almacenan las filas de una tabla.
-B·sicamente, la tabla se guarda directamente ordenada seg˙n la columna del Ìndice.
-Esto permite que las b˙squedas por rangos (por ejemplo, por fechas) sean mucho m·s r·pidas.
-SQL Server solo permite un Ìndice agrupado por tabla. En mi caso, lo utilicÈ sobre una columna de tipo fecha para analizar cÛmo cambia el rendimiento en una tabla grande.
+El √≠ndice agrupado define el orden f√≠sico en el que se almacenan las filas de una tabla.
+B√°sicamente, la tabla se guarda directamente ordenada seg√∫n la columna del √≠ndice.
+Esto permite que las b√∫squedas por rangos (por ejemplo, por fechas) sean mucho m√°s r√°pidas.
+SQL Server solo permite un √≠ndice agrupado por tabla. En mi caso, lo utilic√© sobre una columna de tipo fecha para analizar c√≥mo cambia el rendimiento en una tabla grande.
 
-2. Õndice No Agrupado (Nonclustered Index)
+2. √çndice No Agrupado (Nonclustered Index)
 
-Un Ìndice no agrupado es una estructura separada que contiene la clave indexada y un puntero a los datos reales.
-A diferencia del agrupado, no modifica el orden fÌsico de la tabla.
-Sirve para acelerar consultas que filtran por columnas especÌficas, como b˙squedas por tÌtulo, materia, usuario, etc.
-En mi proyecto serÌa ˙til, por ejemplo, para las b˙squedas de apuntes dentro de UNIVIA.
+Un √≠ndice no agrupado es una estructura separada que contiene la clave indexada y un puntero a los datos reales.
+A diferencia del agrupado, no modifica el orden f√≠sico de la tabla.
+Sirve para acelerar consultas que filtran por columnas espec√≠ficas, como b√∫squedas por t√≠tulo, materia, usuario, etc.
+En mi proyecto ser√≠a √∫til, por ejemplo, para las b√∫squedas de apuntes dentro de UNIVIA.
 
-3. Õndice ⁄nico (Unique Index)
+3. √çndice √önico (Unique Index)
 
-Este tipo de Ìndice garantiza que una columna no tenga valores duplicados.
-SQL Server lo utiliza mucho para claves naturales como correos electrÛnicos o nombres de usuario.
-Adem·s de reforzar la integridad de los datos, hace m·s r·pidas las b˙squedas porque el motor sabe que cada valor aparece como m·ximo una vez.
+Este tipo de √≠ndice garantiza que una columna no tenga valores duplicados.
+SQL Server lo utiliza mucho para claves naturales como correos electr√≥nicos o nombres de usuario.
+Adem√°s de reforzar la integridad de los datos, hace m√°s r√°pidas las b√∫squedas porque el motor sabe que cada valor aparece como m√°ximo una vez.
 
-4. Õndice Filtrado (Filtered Index)
+4. √çndice Filtrado (Filtered Index)
 
-El Ìndice filtrado es una variante del Ìndice no agrupado, pero aplicado solo a un subconjunto de filas utilizando una condiciÛn WHERE.
-Es ideal cuando siempre se consulta el mismo subconjunto de datos, como apuntes ìpublicadosî o usuarios ìactivosî.
-Estos Ìndices ocupan menos espacio y su mantenimiento es menor que el de un Ìndice completo.
+El √≠ndice filtrado es una variante del √≠ndice no agrupado, pero aplicado solo a un subconjunto de filas utilizando una condici√≥n WHERE.
+Es ideal cuando siempre se consulta el mismo subconjunto de datos, como apuntes ‚Äúpublicados‚Äù o usuarios ‚Äúactivos‚Äù.
+Estos √≠ndices ocupan menos espacio y su mantenimiento es menor que el de un √≠ndice completo.
 
-5. Õndice No Agrupado con Columnas Incluidas (INDEX WITH INCLUDE)
+5. √çndice No Agrupado con Columnas Incluidas (INDEX WITH INCLUDE)
 
-Este Ìndice agrega columnas adicionales solo para lectura, convirtiÈndose en un Ìndice cubriente.
-La ventaja es que SQL Server no necesita ir a la tabla a buscar los datos faltantes (evita los ìkey lookupsî).
-Lo usÈ en la parte pr·ctica para comparar el rendimiento de la consulta cuando la informaciÛn necesaria est· completamente dentro del Ìndice.
+Este √≠ndice agrega columnas adicionales solo para lectura, convirti√©ndose en un √≠ndice cubriente.
+La ventaja es que SQL Server no necesita ir a la tabla a buscar los datos faltantes (evita los ‚Äúkey lookups‚Äù).
+Lo us√© en la parte pr√°ctica para comparar el rendimiento de la consulta cuando la informaci√≥n necesaria est√° completamente dentro del √≠ndice.
 
-6. Õndice Columnstore
+6. √çndice Columnstore
 
-El Ìndice Columnstore almacena los datos por columnas en lugar de por filas, logrando una gran compresiÛn y un rendimiento excelente para consultas analÌticas y de lectura intensiva.
+El √≠ndice Columnstore almacena los datos por columnas en lugar de por filas, logrando una gran compresi√≥n y un rendimiento excelente para consultas anal√≠ticas y de lectura intensiva.
 Se usa mucho en escenarios de almacenamiento de datos o reportes.
-Aunque no lo implementÈ en mi tabla masiva, lo incluyo porque representa un tipo de Ìndice moderno y muy utilizado en sistemas donde se manejan grandes vol˙menes de informaciÛn.
+Aunque no lo implement√© en mi tabla masiva, lo incluyo porque representa un tipo de √≠ndice moderno y muy utilizado en sistemas donde se manejan grandes vol√∫menes de informaci√≥n.
 
-## 3. CreaciÛn de inidices en SQL Server:
+## 3. Creaci√≥n de inidices en SQL Server:
 
-Para crear Ìndices en SQL Server se utiliza el comando `CREATE INDEX`.  
-Cada tipo de Ìndice tiene una sintaxis particular y sirve para situaciones diferentes.  
-A continuaciÛn incluyo ejemplos que podrian utilizarse en nuestro proyecto UNIVIA.
+Para crear √≠ndices en SQL Server se utiliza el comando `CREATE INDEX`.  
+Cada tipo de √≠ndice tiene una sintaxis particular y sirve para situaciones diferentes.  
+A continuaci√≥n incluyo ejemplos que podrian utilizarse en nuestro proyecto UNIVIA.
 
-### **3.1 Õndice agrupado**
-Ordena los datos fÌsicamente. Ideal para b˙squedas por rango de fechas.
+### **3.1 √çndice agrupado**
+Ordena los datos f√≠sicamente. Ideal para b√∫squedas por rango de fechas.
 
 ```sql
 CREATE CLUSTERED INDEX idx_fecha
 ON VentaMasiva(fecha);
 
-### **3.2 Õndice no agrupado**
-Crea una estructura aparte para acelerar b˙squedas especÌficas.
+### **3.2 √çndice no agrupado**
+Crea una estructura aparte para acelerar b√∫squedas espec√≠ficas.
 
 ```sql
 CREATE NONCLUSTERED INDEX idx_titulo
 ON Apunte(titulo);
 
-### **3.3 Õndice ˙nico**
+### **3.3 √çndice √∫nico**
 Garantiza que no existan valores repetidos.
 
 ```sql
 CREATE UNIQUE INDEX idx_usuario_email
 ON Usuario(email);
 
-### **3.4 Õndice filtrado*
+### **3.4 √çndice filtrado*
 Apunta solo a un subconjunto de datos.
 
 ```sql
@@ -87,7 +88,7 @@ CREATE NONCLUSTERED INDEX idx_publicados
 ON Apunte(materia_id)
 WHERE estado = 'Publicado';
 
-### **3.5 Õndice con columnas incluidas**
+### **3.5 √çndice con columnas incluidas**
 Evita tener que acceder a la tabla para columnas adicionales.
 
 ```sql
@@ -95,18 +96,21 @@ CREATE NONCLUSTERED INDEX idx_fecha_total
 ON VentaMasiva(fecha)
 INCLUDE (total);
 
-## **3.6 Õndice Columnstore**
-Pensado para an·lisis y tablas muy grandes.
+## **3.6 √çndice Columnstore**
+Pensado para an√°lisis y tablas muy grandes.
 
 ```sql
 CREATE CLUSTERED COLUMNSTORE INDEX idx_colstore
 ON VentaMasiva;
 
 
-## 4. ComparaciÛn de rendimientos con y sin Ìndices
+## 4. Comparaci√≥n de rendimientos con y sin √≠ndices
+Aqui ya pondre la comparaci√≥n
 
 ## 5. Analisis de resultados
+Mi analisis de resultados
 
 ## 6. Conclusiones
+mi conclusion
 
 

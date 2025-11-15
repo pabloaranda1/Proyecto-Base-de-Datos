@@ -4,7 +4,7 @@
 
 ### Participantes:
 - Acosta, Lara
-- Aranda, Pablo
+- Aranda, Pablo 
 - Benitez, Valentina
 - Bolo, Tomas
 

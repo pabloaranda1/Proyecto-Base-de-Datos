@@ -17,7 +17,7 @@
 1.  [Resumen](#resumen)
 2.  [Introducción](#i.introducción)
 3.  [Marco Teórico](#ii-marco-teórico)
-    * [2.1 Definición de Backup y Restore](#21-definición-de-backup-y-restore)
+    * [2.1 Definición de Backup y Restore](#21-definición-de-backup-y-restore) 
     * [2.2 Backup en Línea y Modelos de Recuperación](#22-backup-en-línea-y-modelos-de-recuperación)
     * [2.3 Comparativa y Casos de Uso](#23-comparativa-y-casos-de-uso)
 4.  [Metodología y Ejecución de Tareas](#iii-metodología-y-ejecución-de-tareas)

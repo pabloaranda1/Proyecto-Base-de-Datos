@@ -1,7 +1,7 @@
 # UNIVERSIDAD NACIONAL DEL NORDESTE  
 ## BASES DE DATOS I – PROYECTO DE ESTUDIO 
 
-### Temas 3: Optimización de consultas a través de índices   
+### Tema 3: Optimización de consultas a través de índices   
 **Grupo:** 41
 **Año:** 2025  
 
@@ -53,6 +53,55 @@ Se usa mucho en escenarios de almacenamiento de datos o reportes.
 Aunque no lo implementé en mi tabla masiva, lo incluyo porque representa un tipo de índice moderno y muy utilizado en sistemas donde se manejan grandes volúmenes de información.
 
 ## 3. Creación de inidices en SQL Server:
+
+Para crear índices en SQL Server se utiliza el comando `CREATE INDEX`.  
+Cada tipo de índice tiene una sintaxis particular y sirve para situaciones diferentes.  
+A continuación incluyo ejemplos que podrian utilizarse en nuestro proyecto UNIVIA.
+
+### **3.1 Índice agrupado**
+Ordena los datos físicamente. Ideal para búsquedas por rango de fechas.
+
+```sql
+CREATE CLUSTERED INDEX idx_fecha
+ON VentaMasiva(fecha);
+
+### **3.2 Índice no agrupado**
+Crea una estructura aparte para acelerar búsquedas específicas.
+
+```sql
+CREATE NONCLUSTERED INDEX idx_titulo
+ON Apunte(titulo);
+
+### **3.3 Índice único**
+Garantiza que no existan valores repetidos.
+
+```sql
+CREATE UNIQUE INDEX idx_usuario_email
+ON Usuario(email);
+
+### **3.4 Índice filtrado*
+Apunta solo a un subconjunto de datos.
+
+```sql
+CREATE NONCLUSTERED INDEX idx_publicados
+ON Apunte(materia_id)
+WHERE estado = 'Publicado';
+
+### **3.5 Índice con columnas incluidas**
+Evita tener que acceder a la tabla para columnas adicionales.
+
+```sql
+CREATE NONCLUSTERED INDEX idx_fecha_total
+ON VentaMasiva(fecha)
+INCLUDE (total);
+
+## **3.6 Índice Columnstore**
+Pensado para análisis y tablas muy grandes.
+
+```sql
+CREATE CLUSTERED COLUMNSTORE INDEX idx_colstore
+ON VentaMasiva;
+
 
 ## 4. Comparación de rendimientos con y sin índices
 

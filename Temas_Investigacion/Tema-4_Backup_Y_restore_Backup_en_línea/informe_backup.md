@@ -39,7 +39,7 @@
 ## Resumen
 
 Este informe detalla la implementación práctica y la validación de las técnicas de backup y restore en un entorno de SQL Server,
-utilizando la base de datos `Univia` como modelo de estudio. El objetivo principal  coesnocer y aplicar estrategias de respaldo para asegurar la integridad y recuperación de datos, 
+utilizando la base de datos `Univia` como modelo de estudio. El objetivo principal  es conocer y aplicar estrategias de respaldo para asegurar la integridad y recuperación de datos, 
 con un enfoque específico en el "backup en línea" mediante el uso de copias de seguridad del log de transacciones. Se configuró el modelo de recuperación de la base de datos a `Full`,
 se ejecutó un backup completo, y posteriormente se realizaron backups de log incrementales tras la inserción de datos en la tabla `Material`. 
 Los procedimientos de restauración se validaron en dos puntos distintos del tiempo, demostrando la capacidad de recuperación granular. Los resultados verificaron la restauración exitosa
@@ -111,30 +111,45 @@ A continuación, se documenta el proceso práctico realizado nuestra base de datos
 Antes de iniciar los backups, se creó la base de datos `Univia` y se insertaron los datos primarios necesarios en las tablas `Pais`, `Universidad`, `Carrera`, `Rol` y `Usuario`
 para permitir inserciones en la tabla `Material`.
 
-```sql
--- Creación de la base de datos
+```-- Creación de la base de datos
 CREATE DATABASE Univia;
 GO
 USE Univia;
 GO
--- [Aquí irían todos los CREATE TABLE del modelo de datos]
--- ...
 
 -- Inserción de datos de referencia (FKs)
+-- Estos inserts deben seguir el orden de dependencia del nuevo modelo
+
+-- 1. Pais (ID = 1)
 INSERT INTO Pais (nombre) VALUES ('Argentina');
 GO
+
+-- 2. Universidad (ID = 1, depende de Pais 1)
 INSERT INTO Universidad (nombre, facultad, id_pais) 
 VALUES ('Universidad Nacional del Nordeste', 'Facultad de Ingeniería', 1);
 GO
+
+-- 3. Carrera (ID = 1, depende de Universidad 1)
 INSERT INTO Carrera (nombre, id_universidad) 
 VALUES ('Ingeniería en Informática', 1);
 GO
+
+-- 4. Rol (ID = 1)
 INSERT INTO Rol (nombre_rol) VALUES ('Estudiante');
 GO
+
+-- 5. Usuario (ID = 1, depende de Rol 1)
 INSERT INTO Usuario (correo, contrasena, id_rol) 
 VALUES ('estudiante.prueba@univia.com', 'pass123', 1);
 GO
--- Con esto, tenemos id_carrera = 1 y id_usuario = 1 listos para usar.
+
+-- 6. Perfil (NUEVO INSERT REQUERIDO POR EL NUEVO MODELO)
+-- (ID = 1, depende de Usuario 1 y Carrera 1)
+INSERT INTO Perfil (nombre, apellido, id_usuario, id_carrera)
+VALUES ('Juan', 'Perez', 1, 1);
+GO
+
+-- Con esto, tenemos id_carrera = 1 y id_usuario = 1 listos para usar en la tabla Material.
 ```
 
 ### 3.2 Tarea 1: Verificar y establecer modelo de recuperación

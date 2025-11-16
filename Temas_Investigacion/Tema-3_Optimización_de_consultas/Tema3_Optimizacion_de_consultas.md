@@ -6,6 +6,25 @@
 
 **Año:** 2025  
 
+## Tabla de contenidos
+
+- [1. Introducción](#1-introducción)
+- [2. Tipos de índices](#2-tipos-de-índices)
+- [3. Creación de índices en SQL Server](#3-creación-de-inidices-en-sql-server)
+  - [3.1 Índice agrupado](#31-índice-agrupado)
+  - [3.2 Índice no agrupado](#32-índice-no-agrupado)
+  - [3.3 Índice único](#33-índice-único)
+  - [3.4 Índice filtrado](#34-índice-filtrado)
+  - [3.5 Índice con columnas incluidas](#35-índice-con-columnas-incluidas)
+  - [3.6 Índice Columnstore](#36-índice-columnstore)
+- [4. Comparación de rendimientos con y sin índices](#4-comparación-de-rendimientos-con-y-sin-índices)
+  - [4.1 Consulta sin índices](#41-consulta-sin-índices)
+  - [4.2 Consulta con índice no agrupado](#42-consulta-con-indice-no-agrupado-en-fecha_subida)
+  - [4.3 Consulta con índice include](#43-consulta-con-un--índice-include-índice-cubriente)
+- [5. Análisis de resultados](#5-analisis-de-resultados)
+- [6. Conclusiones](#6-conclusiones)
+
+
 ## 1. Introducción
 En SQL Server, un índice es una estructura auxiliar que el motor de la base de datos utiliza para localizar registros de forma más rápida, evitando recorrer 
 toda la tabla. Esto reduce significativamente los tiempos de respuesta, especialmente en consultas con filtros, búsquedas por rangos o grandes volúmenes 

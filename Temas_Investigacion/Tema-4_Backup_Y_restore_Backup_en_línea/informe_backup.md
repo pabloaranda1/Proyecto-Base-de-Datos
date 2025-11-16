@@ -2,12 +2,6 @@
 
 **Implementación y Verificación de Estrategias de Backup y Restore, incluyendo Backup en Línea en la Base de Datos Univia**
 
-**Autor:** [Tu Nombre Completo]
-**Institución:** [Nombre de tu Institución o Curso]
-**Asignatura:** [Código o Nombre de la Asignatura]
-**Profesor:** [Nombre del Profesor(a)]
-**Fecha:** 15 de noviembre de 2025
-
 ---
 
 ### Tabla de Contenidos

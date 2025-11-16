@@ -104,13 +104,50 @@ CREATE CLUSTERED COLUMNSTORE INDEX idx_colstore
 ON VentaMasiva;
 
 
-## 4. Comparación de rendimientos con y sin índices
-Aqui ya pondre la comparación
+### 4. Comparación de rendimientos con y sin índices
 
-## 5. Analisis de resultados
+Para analizar el impacto real de los índices en el rendimiento, utilicé una tabla llamada **MaterialPrueba**, que es la copia de la tabla "Material" 
+de nuestro proyecto, pero para no dañar nuestra estructura ni sobrecargar cn datos, decidi crear una tabla de ejemplo, cargada con aproximadamente un millón de registros.  
+Esta tabla contiene cuatro columnas: `id_material`, `titulo`, `fecha_subida` y `total_descargas`.
+-- Creamos la tabla de prueba:
+```sql
+CREATE TABLE MaterialPrueba (
+    id_material INT IDENTITY(1,1) PRIMARY KEY,
+    titulo NVARCHAR(150) NOT NULL,
+    fecha_subida DATE NOT NULL,
+    total_descargas INT DEFAULT 0
+);
+
+
+-- Cargamos un millon de registros. 7
+WITH numeros AS (
+   SELECT TOP (1000000)
+       ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
+   FROM sys.all_objects a
+   CROSS JOIN sys.all_objects b
+)
+INSERT INTO MaterialPrueba (titulo, fecha_subida, total_descargas)
+SELECT 
+   CONCAT('Apunte ', n),
+   DATEADD(DAY, -ABS(CHECKSUM(NEWID())) % 1500, GETDATE()),
+   ABS(CHECKSUM(NEWID())) % 500
+FROM numeros;
+
+A continuación se presentan tres escenarios distintos y la comparación de sus tiempos de ejecución.
+
+## 4.1 ** Consulta sin índices**
+```sql
+SELECT *
+FROM MaterialPrueba
+WHERE fecha_subida = '2024-01-15';
+
+Tiempo de ejecución: ms
+
+
+### 5. Analisis de resultados
 Mi analisis de resultados
 
-## 6. Conclusiones
+### 6. Conclusiones
 mi conclusion
 
 

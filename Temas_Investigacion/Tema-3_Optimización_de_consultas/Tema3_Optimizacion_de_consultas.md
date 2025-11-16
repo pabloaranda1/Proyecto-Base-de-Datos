@@ -108,7 +108,7 @@ ON VentaMasiva;
 
 Para analizar el impacto real de los índices en el rendimiento de las consultas, utilicé una tabla llamada MaterialPrueba, que es una copia simplificada de la tabla Material de nuestro proyecto UNIVIA.
 Decidí trabajar sobre esta tabla para evitar sobrecargar los datos reales del sistema y poder generar una carga masiva de registros sin afectar el modelo principal. 
-Esta tabla contiene las siguientes columnas: `id_material`, `titulo`, `fecha_subida` y `total_descargas`.
+Esta tabla contiene las siguientes columnas: `id_material` `titulo` `fecha_subida` `total_descargas`.
 
 ### **4.1 Consulta sin índices**
 ```sql

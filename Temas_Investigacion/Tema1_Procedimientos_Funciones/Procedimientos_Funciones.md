@@ -1,33 +1,32 @@
-```md
-# UNIVERSIDAD NACIONAL DEL NORDESTE  
-## BASES DE DATOS I – PROYECTO DE ESTUDIO 
+# **UNIVERSIDAD NACIONAL DEL NORDESTE**  
+## **BASES DE DATOS I – PROYECTO DE ESTUDIO**  
 
-### Tema 1: Procedimientos y Funciones Almacenadas  
+### **Tema 1: Procedimientos y Funciones Almacenadas**  
 **Base de datos:** Univia  
 **Grupo:** 41  
 **Año:** 2025  
 
 ---
 
-## Tabla de Contenidos
+## **Tabla de Contenidos**
 
-1. Introducción  
-2. Marco Teórico  
-   2.1 ¿Qué es un Procedimiento Almacenado?  
-   2.2 ¿Qué es una Función Definida por el Usuario?  
-3. Funciones Implementadas  
-   3.1 fn_usuario_publicaciones_activas  
-   3.2 fn_publicacion_promedio_puntuacion  
-4. Procedimientos Implementados  
-   4.1 sp_publicacion_insertar  
-   4.2 sp_publicacion_actualizar  
-   4.3 sp_publicacion_baja_logica  
-5. Pruebas y Evidencia  
-6. Conclusiones  
+1. [Introducción](#1-introducción)  
+2. [Marco Teórico](#2-marco-teórico)  
+   - [2.1 ¿Qué es un Procedimiento Almacenado?](#21-qué-es-un-procedimiento-almacenado)  
+   - [2.2 ¿Qué es una Función Definida por el Usuario?](#22-qué-es-una-función-definida-por-el-usuario)  
+3. [Funciones Implementadas](#3-funciones-implementadas)  
+   - [3.1 fn_usuario_publicaciones_activas](#31-fn_usuario_publicaciones_activas)  
+   - [3.2 fn_publicacion_promedio_puntuacion](#32-fn_publicacion_promedio_puntuacion)  
+4. [Procedimientos Implementados](#4-procedimientos-implementados)  
+   - [4.1 sp_publicacion_insertar](#41-sp_publicacion_insertar)  
+   - [4.2 sp_publicacion_actualizar](#42-sp_publicacion_actualizar)  
+   - [4.3 sp_publicacion_baja_logica](#43-sp_publicacion_baja_logica)  
+5. [Pruebas y Evidencia](#5-pruebas-y-evidencia)  
+6. [Conclusiones](#6-conclusiones)  
 
 ---
 
-## 1. Introducción
+## **1. Introducción**
 
 UNIVIA es una plataforma académica donde los estudiantes pueden subir **publicaciones** (apuntes, guías, resúmenes), valorar el material y consumir contenido.  
 A medida que el proyecto crece, también aumenta la lógica que debe ejecutarse cada vez que se inserta, actualiza o consulta información.
@@ -41,45 +40,41 @@ En este capítulo se describe el marco teórico básico y se documentan las funcion
 
 ---
 
-## 2. Marco Teórico
+## **2. Marco Teórico**
 
 En una base de datos relacional, no alcanza con “tener tablas”: también hay que decidir **dónde** se programa la lógica.  
 Una estrategia común es dejar gran parte de esa lógica en el propio servidor SQL para:
 
-- Asegurar que todos los clientes (aplicación web, app móvil, scripts de prueba) usen las mismas reglas.  
-- Validar datos **antes** de tocar las tablas.  
-- Mejorar rendimiento evitando transportar datos innecesarios.  
+- Asegurar que todos los clientes usen las mismas reglas  
+- Validar datos **antes** de modificar las tablas  
+- Mejorar rendimiento  
+- Evitar duplicación  
 
 Las dos herramientas estándar para esto en SQL Server son **procedimientos** y **funciones**.
 
 ---
 
-### 2.1 ¿Qué es un Procedimiento Almacenado?
+### **2.1 ¿Qué es un Procedimiento Almacenado?**
 
-Un **procedimiento almacenado** (Stored Procedure o SP) es un objeto de la base de datos que contiene un bloque de código T-SQL almacenado con un nombre.  
-Se ejecuta con `EXEC nombre_procedimiento ...` y puede incluir:
+Un **procedimiento almacenado** es un bloque T-SQL almacenado en el servidor.  
+Se ejecuta con `EXEC nombre_procedimiento`, y puede incluir:
 
-- Instrucciones `INSERT`, `UPDATE`, `DELETE`, `SELECT`.  
-- Estructuras de control (`IF`, `WHILE`, `RETURN`).  
-- Validaciones y mensajes de error.  
+- INSERT  
+- UPDATE  
+- DELETE  
+- SELECT  
+- Validaciones  
+- Control de flujo  
 
-En UNIVIA se usan para controlar todo lo que pasa con las publicaciones: alta, modificación y baja lógica.
+UNIVIA los usa para gestionar el ciclo completo de las publicaciones.
 
-#### Ventajas principales
+#### **Tipos de procedimientos según parámetros**
 
-- **Centralización de reglas**: la validación se escribe una sola vez.  
-- **Reutilización**: cualquier módulo de la app puede llamar al mismo SP.  
-- **Seguridad**: se puede dar permiso para ejecutar el procedimiento sin otorgar acceso directo a las tablas.  
-- **Mantenimiento**: si cambia una regla, se modifica solo el SP.
+---
 
-#### Tipos de procedimientos según parámetros
+#### **a) Procedimiento sin parámetros**
 
-En la teoría trabajamos con tres tipos básicos:
-
-##### a) Procedimiento sin parámetros
-
-Realiza siempre la misma operación.  
-Ejemplo típico en UNIVIA (solo teórico):
+Siempre ejecuta la misma acción.
 
 ```sql
 CREATE PROCEDURE sp_listar_roles
@@ -88,7 +83,7 @@ BEGIN
     SELECT id_rol, nombre_rol
     FROM Rol;
 END;
-```
+
 
 Este SP **no necesita datos de entrada**; sirve para consultas fijas o tareas de mantenimiento.
 

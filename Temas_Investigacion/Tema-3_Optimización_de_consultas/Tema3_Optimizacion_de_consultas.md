@@ -65,21 +65,21 @@ Ordena los datos físicamente. Ideal para búsquedas por rango de fechas.
 ```sql
 CREATE CLUSTERED INDEX idx_fecha
 ON VentaMasiva(fecha);
-
+```
 ### **3.2 Índice no agrupado**
 Crea una estructura aparte para acelerar búsquedas específicas.
 
 ```sql
 CREATE NONCLUSTERED INDEX idx_titulo
 ON Apunte(titulo);
-
+```
 ### **3.3 Índice único**
 Garantiza que no existan valores repetidos.
 
 ```sql
 CREATE UNIQUE INDEX idx_usuario_email
 ON Usuario(email);
-
+```
 ### **3.4 Índice filtrado*
 Apunta solo a un subconjunto de datos.
 
@@ -87,7 +87,7 @@ Apunta solo a un subconjunto de datos.
 CREATE NONCLUSTERED INDEX idx_publicados
 ON Apunte(materia_id)
 WHERE estado = 'Publicado';
-
+```
 ### **3.5 Índice con columnas incluidas**
 Evita tener que acceder a la tabla para columnas adicionales.
 
@@ -95,59 +95,101 @@ Evita tener que acceder a la tabla para columnas adicionales.
 CREATE NONCLUSTERED INDEX idx_fecha_total
 ON VentaMasiva(fecha)
 INCLUDE (total);
-
+```
 ## **3.6 Índice Columnstore**
 Pensado para análisis y tablas muy grandes.
 
 ```sql
 CREATE CLUSTERED COLUMNSTORE INDEX idx_colstore
 ON VentaMasiva;
-
+```
 
 ### 4. Comparación de rendimientos con y sin índices
 
-Para analizar el impacto real de los índices en el rendimiento, utilicé una tabla llamada **MaterialPrueba**, que es la copia de la tabla "Material" 
-de nuestro proyecto, pero para no dañar nuestra estructura ni sobrecargar cn datos, decidi crear una tabla de ejemplo, cargada con aproximadamente un millón de registros.  
-Esta tabla contiene cuatro columnas: `id_material`, `titulo`, `fecha_subida` y `total_descargas`.
--- Creamos la tabla de prueba:
-```sql
-CREATE TABLE MaterialPrueba (
-    id_material INT IDENTITY(1,1) PRIMARY KEY,
-    titulo NVARCHAR(150) NOT NULL,
-    fecha_subida DATE NOT NULL,
-    total_descargas INT DEFAULT 0
-);
+Para analizar el impacto real de los índices en el rendimiento de las consultas, utilicé una tabla llamada MaterialPrueba, que es una copia simplificada de la tabla Material de nuestro proyecto UNIVIA.
+Decidí trabajar sobre esta tabla para evitar sobrecargar los datos reales del sistema y poder generar una carga masiva de registros sin afectar el modelo principal. 
+Esta tabla contiene las siguientes columnas: `id_material`, `titulo`, `fecha_subida` y `total_descargas`.
 
-
--- Cargamos un millon de registros. 7
-WITH numeros AS (
-   SELECT TOP (1000000)
-       ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS n
-   FROM sys.all_objects a
-   CROSS JOIN sys.all_objects b
-)
-INSERT INTO MaterialPrueba (titulo, fecha_subida, total_descargas)
-SELECT 
-   CONCAT('Apunte ', n),
-   DATEADD(DAY, -ABS(CHECKSUM(NEWID())) % 1500, GETDATE()),
-   ABS(CHECKSUM(NEWID())) % 500
-FROM numeros;
-
-A continuación se presentan tres escenarios distintos y la comparación de sus tiempos de ejecución.
-
-## 4.1 ** Consulta sin índices**
+## 4.1 **Consulta sin índices**
 ```sql
 SELECT *
 FROM MaterialPrueba
 WHERE fecha_subida = '2024-01-15';
+```
+Tiempo de ejecución: ms
+<img width="377" height="44" alt="image" src="https://github.com/user-attachments/assets/de9fd271-0ca6-42b9-8ecb-20727eb08ed9" />
+
+<img width="432" height="163" alt="image" src="https://github.com/user-attachments/assets/64ccbbdf-acba-4c83-bc7c-eba93a2d9c1c" />
+
+Interpretación:
+La consulta realiza un escaneo completo de la tabla (“Table Scan”), leyendo miles de páginas en memoria.
+Esto ocurre porque no existe ningún índice que permita filtrar rápidamente por fecha_subida.
+
+## 4.2 ** Consulta con indice NO agrupado en fecha_subida**
+```sql
+-- Creamos un indice no agrupado
+CREATE NONCLUSTERED INDEX idx_matprueba_fecha
+ON MaterialPrueba(fecha_subida);
+
+-- hacemos la misma consulta pero ya con el indice creado:
+SELECT *
+FROM MaterialPrueba
+WHERE fecha_subida = '2024-01-15';
+```
 
 Tiempo de ejecución: ms
+<img width="360" height="52" alt="image" src="https://github.com/user-attachments/assets/8c59d020-8384-49f1-a28b-36f4b6ca8bc8" />
 
+<img width="675" height="295" alt="image" src="https://github.com/user-attachments/assets/b9d6ad3c-6781-4e9a-ba9d-760956df7c62" />
+
+Interpretación:
+El motor ya no necesita escanear toda la tabla.
+Ahora realiza un Index Seek, que es muchísimo más eficiente:
+
+-menos lecturas lógicas,
+-menor uso de CPU,
+-tiempo de respuesta más bajo.
+
+Esto demuestra por qué los índices no agrupados son ideales para columnas utilizadas en filtros (WHERE).
+
+## 4.3 **Consulta con un  índice INCLUDE (índice cubriente)**
+```sql
+-- Creamos un  índice INCLUDE
+CREATE NONCLUSTERED INDEX idx_matprueba_fecha_inc
+ON MaterialPrueba(fecha_subida)
+INCLUDE (titulo, total_descargas);
+
+-- hacemos la misma consulta pero ya con el indice creado:
+SELECT *
+FROM MaterialPrueba
+WHERE fecha_subida = '2024-01-15';
+```
+Tiempo de ejecución: ms
+<img width="346" height="35" alt="image" src="https://github.com/user-attachments/assets/1a046386-488f-4ccc-a652-c20e000812d7" />
+
+<img width="449" height="145" alt="image" src="https://github.com/user-attachments/assets/f14faefe-4c57-48b8-9acd-3dc0e2c34b12" />
+
+Este índice evita los Key Lookups, porque todas las columnas necesarias están dentro del índice.
+Esto reduce aún más el tiempo de respuesta y las lecturas lógicas.
+Es el escenario más eficiente de los tres.
 
 ### 5. Analisis de resultados
-Mi analisis de resultados
+Los resultados obtenidos muestran claramente cómo los índices impactan en el rendimiento:
+Sin índice:
+La consulta realiza un Table Scan, leyendo toda la tabla.
+Es el método más lento, especialmente con tablas grandes.
+
+Con índice no agrupado:
+La consulta cambia a un Index Seek.
+Se reduce drásticamente el número de páginas leídas.
+El tiempo de ejecución mejora notablemente.
+
+Con índice INCLUDE:
+El motor ya no necesita acceder a la tabla principal.
+Todos los datos están cubiertos por el índice.
+Es el plan más eficiente y el más recomendado para consultas muy frecuentes.
 
 ### 6. Conclusiones
-mi conclusion
+La optimización mediante índices es una práctica fundamental en bases de datos relacionales y resulta indispensable para garantizar un rendimiento adecuado en sistemas como UNIVIA, donde las búsquedas de apuntes y materiales académicos se realizan constantemente.
 
 

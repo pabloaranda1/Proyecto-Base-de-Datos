@@ -1,7 +1,7 @@
 # UNIVERSIDAD NACIONAL DEL NORDESTE  
 ## BASES DE DATOS I – PROYECTO DE ESTUDIO 
 
-### Tema 3: Optimización de consultas a través de índices   
+### Tema 2: Optimización de consultas a través de índices   
 **Grupo:** 41
 
 **Año:** 2025  

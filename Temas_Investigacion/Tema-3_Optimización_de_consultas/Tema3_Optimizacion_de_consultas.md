@@ -55,7 +55,7 @@ Aunque no lo implementé en mi tabla masiva, lo incluyo porque representa un tip
 
 ## 3. Creación de inidices en SQL Server:
 
-Para crear índices en SQL Server se utiliza el comando `CREATE INDEX`.  
+Para crear índices en SQL Server se utiliza el comando CREATE INDEX.  
 Cada tipo de índice tiene una sintaxis particular y sirve para situaciones diferentes.  
 A continuación incluyo ejemplos que podrian utilizarse en nuestro proyecto UNIVIA.
 

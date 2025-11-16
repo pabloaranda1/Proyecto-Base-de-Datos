@@ -8,7 +8,6 @@
    5. Creación y prueba de índice INCLUDE (índice cubriente) 
    6. Creación y prueba de índice UNICO
    7. Creación y prueba de índice Filtrado
-   8. Limpieza opcional
 */
 
 /*
@@ -75,7 +74,10 @@ GO
 Incluye columnas adicionales dentro del índice, lo que elimina
 los Key Lookups y hace la consulta aún más eficiente.
 */
-    
+
+--Primero borramos el indice anterior:
+ DROP INDEX idx_matprueba_fecha ON MaterialPrueba;
+
 -- Crear índice INCLUDE
 CREATE NONCLUSTERED INDEX idx_matprueba_fecha_inc
 ON MaterialPrueba(fecha_subida)
@@ -97,6 +99,9 @@ Este tipo de índice permite búsquedas extremadamente rápidas
 cuando se consulta por un valor único.
 */
 
+--Borramos el indice anterior:
+DROP INDEX idx_matprueba_fecha_inc ON MaterialPrueba;
+ 
 -- Creamos índice único sobre título
 CREATE UNIQUE INDEX idx_matprueba_titulo_unique
 ON MaterialPrueba(titulo);
@@ -117,6 +122,9 @@ una columna que me sea útil para demostrar este índice) y marcamos
 aleatoriamente algunos registros como 'Publicado' u 'Oculto'.
 Solo los registros con estado 'Publicado' serán indexados.
 */
+
+--Borramos el indice anterior:
+ DROP INDEX idx_matprueba_titulo_unique ON MaterialPrueba;
 
 -- Agregamos columna de estado 
 ALTER TABLE MaterialPrueba
@@ -142,11 +150,7 @@ WHERE estado = 'Publicado'
   AND fecha_subida = '2024-01-15';
 GO
 
+--Borramos el indice creado
+DROP INDEX idx_matprueba_publicados ON MaterialPrueba;
 
-/* 
-   8. LIMPIEZA OPCIONAL (si se desea repetir las pruebas)
-   -------------------------------------------------------------
-   DROP INDEX idx_matprueba_fecha ON MaterialPrueba;
-   DROP INDEX idx_matprueba_fecha_inc ON MaterialPrueba;
-*/
 

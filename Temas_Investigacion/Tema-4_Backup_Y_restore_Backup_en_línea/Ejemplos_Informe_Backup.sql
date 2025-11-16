@@ -1,215 +1,308 @@
 ﻿/*
-===================================================================
-SCRIPT DE EJEMPLOS - INFORME BACKUP Y RESTORE (Base de Datos Univia)
-===================================================================
+
+SCRIPT DE PRUEBA INTEGRAL - INFORME DE BACKUP (MODELO PUBLICACION)
+
 */
 
--- ---
--- 3.1 Preparación del Entorno
--- ---
+-- 1. CONFIGURACIÓN
+DECLARE @RutaBackups NVARCHAR(MAX) = 'C:\Backups\'; -- debe haber una carpeta llamada backup en el disco c para que funcione
+DECLARE @RutaDatos NVARCHAR(MAX) = 'C:\Users\Diame\'; -- (Ruta de tu .mdf)
+DECLARE @RutaLog NVARCHAR(MAX) = 'C:\Users\Diame\'; -- (Ruta de tu .ldf)
 
--- Creación de la base de datos
+
+
+-- 2. LIMPIEZA DEL ENTORNO DE PRUEBA
+USE master;
+GO
+IF DB_ID('Univia') IS NOT NULL
+BEGIN
+    ALTER DATABASE Univia SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE Univia;
+END
+IF DB_ID('Univia_Restaurada') IS NOT NULL
+BEGIN
+    ALTER DATABASE Univia_Restaurada SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE Univia_Restaurada;
+END
+IF DB_ID('Univia_Restaurada_Completa') IS NOT NULL
+BEGIN
+    ALTER DATABASE Univia_Restaurada_Completa SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+    DROP DATABASE Univia_Restaurada_Completa;
+END
+
+GO
+
+-- 3. CREACIÓN DE BASE DE DATOS Y TABLAS (NUEVO MODELO
+
 CREATE DATABASE Univia;
 GO
 USE Univia;
 GO
 
-/*
--- [Aquí irían todos los CREATE TABLE del modelo de datos]
--- ... (Omitidos para este script de backup, pero necesarios para ejecutar los INSERT)
--- Asumimos que las tablas ya existen
-*/
+CREATE TABLE Rol ( id_rol INT IDENTITY(1,1) PRIMARY KEY, nombre_rol VARCHAR(50) NOT NULL );
+go
+CREATE TABLE Universidad ( id_universidad INT IDENTITY(1,1) PRIMARY KEY, nombre VARCHAR(100) NOT NULL );
+go
+CREATE TABLE Carrera ( id_carrera INT IDENTITY(1,1) PRIMARY KEY, nombre VARCHAR(100) NOT NULL );
+go
+CREATE TABLE Usuario (
+    id_usuario INT IDENTITY(1,1) PRIMARY KEY, nombre VARCHAR(100) NOT NULL, apellido VARCHAR(100) NOT NULL,
+    email VARCHAR(150) UNIQUE NOT NULL, contrasena VARCHAR(255) NOT NULL, fecha_registro DATETIME DEFAULT GETDATE(),
+    estado BIT DEFAULT 1, id_rol INT NOT NULL, CONSTRAINT FK_Rol_Usuario FOREIGN KEY (id_rol) REFERENCES Rol(id_rol)
+);
+go
+CREATE TABLE Perfil (
+    id_usuario INT PRIMARY KEY, bio VARCHAR(500), reputacion INT DEFAULT 0, id_universidad INT,
+    CONSTRAINT FK_Usuario_Perfil FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
+    CONSTRAINT FK_Universidad_Perfil FOREIGN KEY (id_universidad) REFERENCES Universidad(id_universidad)
+);
+go
+CREATE TABLE Carrera_Usuario (
+    id_usuario INT NOT NULL, id_carrera INT NOT NULL, CONSTRAINT PK_Carrera_Usuario PRIMARY KEY (id_usuario, id_carrera),
+    CONSTRAINT FK_Usuario_CarreraUsuario FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
+    CONSTRAINT FK_Carrera_CarreraUsuario FOREIGN KEY (id_carrera) REFERENCES Carrera(id_carrera)
+);
+go
+CREATE TABLE Publicacion (
+    id_publicacion INT IDENTITY(1,1) PRIMARY KEY, titulo VARCHAR(200) NOT NULL, descripcion VARCHAR(800), tipo_recurso VARCHAR(50),
+    tipo_acceso VARCHAR(50), descargable BIT DEFAULT 0, precio DECIMAL(10,2), fecha_publicacion DATETIME DEFAULT GETDATE(),
+    estado BIT DEFAULT 1, id_usuario INT NOT NULL, CONSTRAINT FK_Usuario_Publicacion FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
+);
+go
+CREATE TABLE Publicacion_Carrera (
+    id_carrera INT NOT NULL, id_publicacion INT NOT NULL, CONSTRAINT PK_Carrera_Publicacion PRIMARY KEY (id_carrera, id_publicacion),
+    CONSTRAINT FK_Carrera_PublicacionCarrera FOREIGN KEY (id_carrera) REFERENCES Carrera(id_carrera),
+    CONSTRAINT FK_Publicacion_Publicacion_Carrera FOREIGN KEY (id_publicacion) REFERENCES Publicacion(id_publicacion)
+);
+go
+CREATE TABLE id_archivo (
+    id_archivo INT IDENTITY(1,1) PRIMARY KEY, nombre VARCHAR(200), ruta VARCHAR(300) NOT NULL, tipo VARCHAR(50),
+    id_publicacion INT NOT NULL, CONSTRAINT FK_Publicacion_Archivo FOREIGN KEY (id_publicacion) REFERENCES Publicacion(id_publicacion)
+);
+go
+CREATE TABLE Valoracion (
+    id_publicacion INT NOT NULL, id_usuario INT NOT NULL, puntuacion INT CHECK(puntuacion BETWEEN 1 AND 5), comentario VARCHAR(500),
+    fecha DATETIME DEFAULT GETDATE(), CONSTRAINT PK_Valoracion PRIMARY KEY (id_publicacion, id_usuario),
+    CONSTRAINT FK_Publicacion_Valoracion FOREIGN KEY (id_publicacion) REFERENCES Publicacion(id_publicacion),
+    CONSTRAINT FK_Usuario_Valoracion FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
+);
+go
+CREATE TABLE Conversacion ( id_conversacion INT IDENTITY(1,1) PRIMARY KEY, fecha_creacion DATETIME DEFAULT GETDATE() );
+go
+CREATE TABLE Conversacion_Usuario (
+    id_conversacion INT NOT NULL, id_usuario INT NOT NULL, CONSTRAINT PK_ConversacionUsuario PRIMARY KEY (id_conversacion, id_usuario),
+    CONSTRAINT FK_Conversacion_ConversacionUsuario FOREIGN KEY (id_conversacion) REFERENCES Conversacion(id_conversacion),
+    CONSTRAINT FK__Usuario_ConversacionUsuario FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
+);
+go
+CREATE TABLE Mensaje (
+    id_mensaje INT IDENTITY(1,1) PRIMARY KEY, contenido VARCHAR(MAX), fecha_envio DATETIME DEFAULT GETDATE(), leido BIT DEFAULT 0,
+    id_conversacion INT NOT NULL, id_usuario INT NOT NULL,
+    CONSTRAINT FK_Conversacion_Mensaje FOREIGN KEY (id_conversacion) REFERENCES Conversacion(id_conversacion),
+    CONSTRAINT FK_Usuario_Mensaje FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario)
+);
+go
+CREATE TABLE Archivo_Mensaje (
+    id_mensaje INT NOT NULL, id_archivo INT NOT NULL, CONSTRAINT PK_ArchivoMensaje PRIMARY KEY (id_mensaje, id_archivo),
+    CONSTRAINT FK_Mensaje_ArchivoMensaje FOREIGN KEY (id_mensaje) REFERENCES Mensaje(id_mensaje),
+    CONSTRAINT FK_Archivo_ArchivoMensaje FOREIGN KEY (id_archivo) REFERENCES id_archivo(id_archivo)
+);
+
+GO
 
 
--- Inserción de datos de referencia (FKs)
--- (Necesarios para que los INSERT en 'Material' funcionen)
-/*
-INSERT INTO Pais (nombre) VALUES ('Argentina');
-GO
-INSERT INTO Universidad (nombre, facultad, id_pais) 
-VALUES ('Universidad Nacional del Nordeste', 'Facultad de Ingeniería', 1);
-GO
-INSERT INTO Carrera (nombre, id_universidad) 
-VALUES ('Ingeniería en Informática', 1);
+-- 4. TAREA 3.1: PREPARACIÓN DEL ENTORNO (INSERTS INICIALES)
+USE Univia;
 GO
 INSERT INTO Rol (nombre_rol) VALUES ('Estudiante');
+INSERT INTO Usuario (nombre, apellido, email, contrasena, id_rol) VALUES ('Juan', 'Perez', 'juan.perez@univia.com', 'pass123', 1);
+INSERT INTO Universidad (nombre) VALUES ('Universidad Nacional del Nordeste');
+INSERT INTO Perfil (id_usuario, id_universidad) VALUES (1, 1);
+INSERT INTO Carrera (nombre) VALUES ('Ingeniería en Informática');
+INSERT INTO Carrera_Usuario (id_usuario, id_carrera) VALUES (1, 1);
 GO
-INSERT INTO Usuario (correo, contrasena, id_rol) 
-VALUES ('estudiante.prueba@univia.com', 'pass123', 1);
-GO
-*/
--- Con esto, asumimos que id_carrera = 1 y id_usuario = 1 existen.
-
-
--- ---
--- 3.2 Tarea 1: Verificar y Establecer Modelo de Recuperación
--- ---
-
--- 1. Verificar el modelo actual
-SELECT name, recovery_model_desc 
-FROM sys.databases 
-WHERE name = 'Univia';
+PRINT '>>> 4. Tarea 3.1: Inserts de preparación completados (Usuario 1 y Carrera 1 listos).';
 GO
 
--- 2. Establecer el modelo a FULL (si no lo estuviera)
+-- 5. TAREA 3.2: VERIFICAR Y ESTABLECER MODELO DE RECUPERACIÓN
 ALTER DATABASE Univia SET RECOVERY FULL;
 GO
-
-
--- ---
--- 3.3 Tarea 2: Realizar un Backup Full
--- ---
-
-/* NOTA: La ruta 'C:\Backups\' debe existir en el servidor */
-BACKUP DATABASE Univia
-TO DISK = 'C:\Backups\Univia_Full.bak'
-WITH NAME = 'Univia - Backup Full Inicial',
-     DESCRIPTION = 'Base para la cadena de logs';
+PRINT 'Modelo de recuperación establecido a FULL.';
 GO
 
+-- 6. TAREA 3.3: REALIZAR UN BACKUP FULL
+-- FIX: Volvemos a declarar las variables de configuración para este lote
+DECLARE @RutaBackups NVARCHAR(MAX) = 'C:\Backups\';
+DECLARE @RutaDatos NVARCHAR(MAX) = 'C:\Users\Diame\';
+DECLARE @RutaLog NVARCHAR(MAX) = 'C:\Users\Diame\';
 
--- ---
--- 3.4 Tarea 3: Generar 10 Inserts (Lote 1)
--- ---
+DECLARE @RutaBackupFull NVARCHAR(MAX);
+SET @RutaBackupFull = @RutaBackups + N'Univia_Full.bak'; 
+BACKUP DATABASE Univia
+TO DISK = @RutaBackupFull
+WITH NAME = 'Univia - Backup Full Inicial';
+GO
+PRINT 'Backup Full completado.';
+GO
 
+-- 7. TAREA 3.4: GENERAR 10 INSERTS (LOTE 1)
 USE Univia;
 GO
--- Insertamos el primer lote de 10 materiales
-INSERT INTO Material (titulo, descripcion, tipo_archivo, formato, acceso, estado, id_usuario, id_carrera)
-VALUES
-('Apuntes S.O.', 'Resumen U1', 'PDF', '.pdf', 'Publico', 'Aprobado', 1, 1),
-('Parcial Algebra', 'Resuelto 2022', 'IMG', '.jpg', 'Publico', 'Aprobado', 1, 1),
-('Guia TPs Redes', 'Ejercicios prácticos', 'DOCX', '.docx', 'Publico', 'Aprobado', 1, 1),
-('Resumen BDD', 'Modelo Relacional', 'PDF', '.pdf', 'Publico', 'Aprobado', 1, 1),
-('Final Paradigmas', 'Preguntas y Respuestas', 'PDF', '.pdf', 'Publico', 'Aprobado', 1, 1),
-('Intro a IA', 'Capítulo 1 Libro', 'PDF', '.pdf', 'Publico', 'Aprobado', 1, 1),
-('Ejemplo UML', 'Diagrama de Clases', 'IMG', '.png', 'Publico', 'Aprobado', 1, 1),
-('Tutorial Git', 'Comandos básicos', 'PDF', '.pdf', 'Publico', 'Aprobado', 1, 1),
-('Template Tesis', 'Formato APA', 'DOCX', '.docx', 'Publico', 'Aprobado', 1, 1),
-('Video Fisica 1', 'Link a clase MRU', 'Link', '.url', 'Publico', 'Aprobado', 1, 1);
+
+DECLARE @new_pub_id INT;
+INSERT INTO Publicacion (titulo, descripcion, tipo_recurso, tipo_acceso, id_usuario) VALUES ('Apuntes S.O.', 'Resumen U1', 'PDF', 'Publico', 1);
+SET @new_pub_id = SCOPE_IDENTITY();
+INSERT INTO Publicacion_Carrera (id_carrera, id_publicacion) VALUES (1, @new_pub_id);
+INSERT INTO Publicacion (titulo, descripcion, tipo_recurso, tipo_acceso, id_usuario) VALUES ('Parcial Algebra', 'Resuelto 2022', 'IMG', 'Publico', 1);
+SET @new_pub_id = SCOPE_IDENTITY();
+INSERT INTO Publicacion_Carrera (id_carrera, id_publicacion) VALUES (1, @new_pub_id);
+INSERT INTO Publicacion (titulo, descripcion, tipo_recurso, tipo_acceso, id_usuario) VALUES ('Guia TPs Redes', 'Ejercicios prácticos', 'DOCX', 'Publico', 1);
+SET @new_pub_id = SCOPE_IDENTITY();
+INSERT INTO Publicacion_Carrera (id_carrera, id_publicacion) VALUES (1, @new_pub_id);
+INSERT INTO Publicacion (titulo, descripcion, tipo_recurso, tipo_acceso, id_usuario) VALUES ('Resumen BDD', 'Modelo Relacional', 'PDF', 'Publico', 1);
+SET @new_pub_id = SCOPE_IDENTITY();
+INSERT INTO Publicacion_Carrera (id_carrera, id_publicacion) VALUES (1, @new_pub_id);
+INSERT INTO Publicacion (titulo, descripcion, tipo_recurso, tipo_acceso, id_usuario) VALUES ('Final Paradigmas', 'Preguntas y Respuestas', 'PDF', 'Publico', 1);
+SET @new_pub_id = SCOPE_IDENTITY();
+INSERT INTO Publicacion_Carrera (id_carrera, id_publicacion) VALUES (1, @new_pub_id);
+INSERT INTO Publicacion (titulo, descripcion, tipo_recurso, tipo_acceso, id_usuario) VALUES ('Intro a IA', 'Capítulo 1 Libro', 'PDF', 'Publico', 1), 
+('Ejemplo UML', 'Diagrama de Clases', 'IMG', 'Publico', 1), ('Tutorial Git', 'Comandos básicos', 'PDF', 'Publico', 1),
+('Template Tesis', 'Formato APA', 'DOCX', 'Publico', 1), ('Video Fisica 1', 'Link a clase MRU', 'Link', 'Publico', 1);
+INSERT INTO Publicacion_Carrera (id_carrera, id_publicacion) VALUES (1, 6), (1, 7), (1, 8), (1, 9), (1, 10);
+GO
+PRINT ' Lote 1 (10 publicaciones) completado.';
 GO
 
+-- 8. TAREA 3.5: PRIMER BACKUP DEL ARCHIVO DE LOG (LOG 1)
+-- FIX: Volvemos a declarar las variables de configuración para este lote
+DECLARE @RutaBackups NVARCHAR(MAX) = 'C:\Backups\';
+DECLARE @RutaDatos NVARCHAR(MAX) = 'C:\Users\Diame\';
+DECLARE @RutaLog NVARCHAR(MAX) = 'C:\Users\Diame\';
 
--- ---
--- 3.5 Tarea 4: Primer Backup del Archivo de Log (Log 1)
--- ---
-
+DECLARE @RutaBackupLog1 NVARCHAR(MAX);
+SET @RutaBackupLog1 = @RutaBackups + N'Univia_Log1.trn';
 BACKUP LOG Univia
-TO DISK = 'C:\Backups\Univia_Log1.trn'
+TO DISK = @RutaBackupLog1
 WITH NAME = 'Univia - Log 1 (Post Lote 1)';
 GO
+PRINT '>>> 8. Tarea 3.5: Backup Log 1 completado.';
+GO
 
-
--- ---
--- 3.6 Tarea 5: Generar otros 10 Inserts (Lote 2)
--- ---
-
+-- 9. TAREA 3.6: GENERAR OTROS 10 INSERTS (LOTE 2)
 USE Univia;
 GO
--- Insertamos el segundo lote de 10 materiales
-INSERT INTO Material (titulo, descripcion, tipo_archivo, formato, acceso, estado, id_usuario, id_carrera)
-VALUES
-('Guia S.O. U2', 'Administración de Procesos', 'PDF', '.pdf', 'Publico', 'Aprobado', 1, 1),
-('Modelo ER', 'Diagrama BD Restaurante', 'IMG', '.png', 'Publico', 'Aprobado', 1, 1),
-('Taller Python', 'Ejercicios POO', 'ZIP', '.zip', 'Publico', 'Aprobado', 1, 1),
-('Audio Ingles', 'Listening Practice B2', 'MP3', '.mp3', 'Publico', 'Aprobado', 1, 1),
-('Parcial Calculo II', 'Resuelto 2023', 'PDF', '.pdf', 'Publico', 'Aprobado', 1, 1),
-('Resumen Arqui', 'Modelo Von Neumann', 'PDF', '.pdf', 'Publico', 'Aprobado', 1, 1),
-('Presentacion Redes', 'Modelo OSI vs TCP/IP', 'PPTX', '.pptx', 'Publico', 'Aprobado', 1, 1),
-('Libro Estadistica', 'Probabilidad y Muestreo', 'PDF', '.pdf', 'Publico', 'Aprobado', 1, 1),
-('Final Ing. Software', 'Metodologías Ágiles', 'PDF', '.pdf', 'Publico', 'Aprobado', 1, 1),
-('Plan de Negocios', 'Template Emprendimiento', 'DOCX', '.docx', 'Publico', 'Aprobado', 1, 1);
+
+DECLARE @new_pub_id INT;
+INSERT INTO Publicacion (titulo, descripcion, tipo_recurso, tipo_acceso, id_usuario) VALUES ('Guia S.O. U2', 'Administración de Procesos', 'PDF', 'Publico', 1);
+SET @new_pub_id = SCOPE_IDENTITY();
+INSERT INTO Publicacion_Carrera (id_carrera, id_publicacion) VALUES (1, @new_pub_id);
+INSERT INTO Publicacion (titulo, descripcion, tipo_recurso, tipo_acceso, id_usuario) VALUES ('Modelo ER', 'Diagrama BD Restaurante', 'IMG', 'Publico', 1);
+SET @new_pub_id = SCOPE_IDENTITY();
+INSERT INTO Publicacion_Carrera (id_carrera, id_publicacion) VALUES (1, @new_pub_id);
+INSERT INTO Publicacion (titulo, descripcion, tipo_recurso, tipo_acceso, id_usuario) VALUES ('Taller Python', 'Ejercicios POO', 'ZIP', 'Publico', 1), 
+('Audio Ingles', 'Listening Practice B2', 'MP3', 'Publico', 1), ('Parcial Calculo II', 'Resuelto 2023', 'PDF', 'Publico', 1),
+('Resumen Arqui', 'Modelo Von Neumann', 'PDF', 'Publico', 1), ('Presentacion Redes', 'Modelo OSI vs TCP/IP', 'PPTX', 'Publico', 1),
+('Libro Estadistica', 'Probabilidad y Muestreo', 'PDF', 'Publico', 1), ('Final Ing. Software', 'Metodologías Ágiles', 'PDF', 'Publico', 1), 
+('Plan de Negocios', 'Template Emprendimiento', 'DOCX', 'Publico', 1);
+INSERT INTO Publicacion_Carrera (id_carrera, id_publicacion) VALUES (1, 13), (1, 14), (1, 15), (1, 16), (1, 17), (1, 18), (1, 19), (1, 20);
+GO
+PRINT 'Lote 2 (10 publicaciones) completado.';
 GO
 
+-- 10. TAREA 3.7: SEGUNDO BACKUP DEL ARCHIVO DE LOG (LOG 2)
+-- FIX: Volvemos a declarar las variables de configuración para este lote
+DECLARE @RutaBackups NVARCHAR(MAX) = 'C:\Backups\';
+DECLARE @RutaDatos NVARCHAR(MAX) = 'C:\Users\Diame\';
+DECLARE @RutaLog NVARCHAR(MAX) = 'C:\Users\Diame\';
 
--- ---
--- 3.7 Tarea 6: Segundo Backup del Archivo de Log (Log 2)
--- ---
-
+DECLARE @RutaBackupLog2 NVARCHAR(MAX);
+SET @RutaBackupLog2 = @RutaBackups + N'Univia_Log2.trn'; 
 BACKUP LOG Univia
-TO DISK = 'C:\Backups\Univia_Log2.trn'
+TO DISK = @RutaBackupLog2
 WITH NAME = 'Univia - Log 2 (Post Lote 2)';
 GO
+PRINT 'Backup Log 2 completado.';
+GO
 
 
--- ---
--- 4.1 Tarea 7: Restaurar al Momento del Primer Backup de Log
--- ---
+-- 11. TAREAS 4.1 y 4.2: PRUEBA DE RESTAURACIÓN (ESCENARIO 1: SÓLO LOTE 1)
 
-/*
--- !! IMPORTANTE !!
--- Los comandos RESTORE no pueden ejecutarse sobre la base de datos
--- que estás intentando restaurar. Debes ejecutarlos desde 'master'.
--- Además, la base de datos 'Univia' debe estar sin conexiones activas.
--- Por eso, restauramos en una NUEVA base de datos 'Univia_Restaurada'.
-*/
-
+PRINT 'Restaurar hasta Log 1 (10 publicaciones).';
 USE master;
 GO
--- Paso 1: Restaurar el Full sin recuperación
-RESTORE DATABASE Univia_Restaurada
-FROM DISK = 'C:\Backups\Univia_Full.bak'
-WITH NORECOVERY,
-MOVE 'Univia' TO 'C:\Program Files\Microsoft SQL Server\...\DATA\Univia_Rest.mdf',
-MOVE 'Univia_log' TO 'C:\Program Files\Microsoft SQL Server\...\DATA\Univia_Rest.ldf';
-GO
+-- FIX: Volvemos a declarar las variables de configuración para este lote
+DECLARE @RutaBackups NVARCHAR(MAX) = 'C:\Backups\';
+DECLARE @RutaDatos NVARCHAR(MAX) = 'C:\Users\Diame\';
+DECLARE @RutaLog NVARCHAR(MAX) = 'C:\Users\Diame\';
 
--- Paso 2: Aplicar el Log 1 y poner la DB en línea
+-- Variables de ruta dinámicas
+DECLARE @RutaBackupFull NVARCHAR(MAX) = @RutaBackups + N'Univia_Full.bak';
+DECLARE @RutaBackupLog1 NVARCHAR(MAX) = @RutaBackups + N'Univia_Log1.trn';
+DECLARE @RutaDatosMDF NVARCHAR(MAX) = @RutaDatos + N'Univia_Rest.mdf';
+DECLARE @RutaDatosLDF NVARCHAR(MAX) = @RutaLog + N'Univia_Rest.ldf';
+
+-- Paso 1: Restaurar el Full (NORECOVERY)
+RESTORE DATABASE Univia_Restaurada
+FROM DISK = @RutaBackupFull
+WITH NORECOVERY,
+MOVE 'Univia' TO @RutaDatosMDF,
+MOVE 'Univia_log' TO @RutaDatosLDF;
+GO
+-- Paso 2: Aplicar el Log 1 (RECOVERY)
 RESTORE LOG Univia_Restaurada
-FROM DISK = 'C:\Backups\Univia_Log1.trn'
+FROM DISK = N'C:\Backups\Univia_Log1.trn'
 WITH RECOVERY;
 GO
 
+-- Verificación Tarea 4.2
 
--- ---
--- 4.2 Tarea 8: Verificación del Resultado (Escenario 1)
--- ---
-
+PRINT ' RESULTADO ESCENARIO 1 (Debería ser 10):';
 USE Univia_Restaurada;
 GO
-SELECT COUNT(*) AS TotalMateriales FROM Material;
+SELECT COUNT(*) AS TotalPublicaciones_Escenario_1 FROM Publicacion;
 GO
--- El resultado esperado es 10
 
+-- 12. TAREAS 4.3 y 4.4: PRUEBA DE RESTAURACIÓN (ESCENARIO 2: LOTE 1 + LOTE 2)
 
--- ---
--- 4.3 Tarea 9: Restaurar Aplicando Ambos Archivos de Log
--- ---
-
-/*
--- (Se asume que se borró 'Univia_Restaurada' o se usa un nombre nuevo
--- para este segundo escenario de prueba)
-*/
+PRINT ' Restaurar hasta Log 2 (20 publicaciones).';
 USE master;
 GO
+-- Declaramos las variables para ESTE LOTE
+DECLARE @RutaBackups NVARCHAR(MAX) = 'C:\Backups\';
+DECLARE @RutaDatos NVARCHAR(MAX) = 'C:\Users\Diame\';
+DECLARE @RutaLog NVARCHAR(MAX) = 'C:\Users\Diame\';
+
+-- Variables de ruta dinámicas
+DECLARE @RutaBackupFull NVARCHAR(MAX) = @RutaBackups + N'Univia_Full.bak';
+DECLARE @RutaBackupLog1 NVARCHAR(MAX) = @RutaBackups + N'Univia_Log1.trn';
+DECLARE @RutaBackupLog2 NVARCHAR(MAX) = @RutaBackups + N'Univia_Log2.trn';
+DECLARE @RutaDatosMDF_C NVARCHAR(MAX) = @RutaDatos + N'Univia_Rest_Full.mdf';
+DECLARE @RutaDatosLDF_C NVARCHAR(MAX) = @RutaLog + N'Univia_Rest_Full.ldf';
 
 -- Paso 1: Restaurar el Full (NORECOVERY)
 RESTORE DATABASE Univia_Restaurada_Completa
-FROM DISK = 'C:\Backups\Univia_Full.bak'
+FROM DISK = @RutaBackupFull
 WITH NORECOVERY,
-MOVE 'Univia' TO 'C:\Program Files\Microsoft SQL Server\...\DATA\Univia_Rest_Full.mdf',
-MOVE 'Univia_log' TO 'C:\Program Files\Microsoft SQL Server\...\DATA\Univia_Rest_Full.ldf';
-GO
+MOVE 'Univia' TO @RutaDatosMDF_C,
+MOVE 'Univia_log' TO @RutaDatosLDF_C;
+
 
 -- Paso 2: Aplicar el Log 1 (NORECOVERY)
 RESTORE LOG Univia_Restaurada_Completa
-FROM DISK = 'C:\Backups\Univia_Log1.trn'
+FROM DISK = @RutaBackupLog1
 WITH NORECOVERY;
-GO
+
 
 -- Paso 3: Aplicar el Log 2 (RECOVERY)
 RESTORE LOG Univia_Restaurada_Completa
-FROM DISK = 'C:\Backups\Univia_Log2.trn'
+FROM DISK = @RutaBackupLog2
 WITH RECOVERY;
-GO
+GO 
 
+-- Verificación Tarea 4.4
 
--- ---
--- 4.4 Verificación (Escenario 2)
--- ---
-
+PRINT '>>> RESULTADO ESCENARIO 2 (Debería ser 20):';
 USE Univia_Restaurada_Completa;
 GO
-SELECT COUNT(*) AS TotalMateriales FROM Material;
+SELECT COUNT(*) AS TotalPublicaciones_Escenario_2 FROM Publicacion;
 GO
--- El resultado esperado es 20

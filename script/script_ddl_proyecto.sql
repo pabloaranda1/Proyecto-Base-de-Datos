@@ -94,7 +94,7 @@ CREATE TABLE Valoracion (
 ----------------------------------------
 -- SISTEMA DE MENSAJERÍA (INBOX)
 ----------------------------------------
-
+ 
 CREATE TABLE Conversacion (
     id_conversacion INT IDENTITY(1,1) PRIMARY KEY,
     fecha_creacion DATETIME DEFAULT GETDATE()

@@ -29,79 +29,102 @@
 
 ## 1. Introducción
 
-En SQL Server, los procedimientos almacenados y las funciones permiten modularizar la lógica, validar datos y mejorar el rendimiento.  
-En **UNIVIA**, son utilizados para gestionar publicaciones, verificar integridad y obtener estadísticas sobre los recursos.
+UNIVIA es una plataforma académica donde los estudiantes pueden subir **publicaciones** (apuntes, guías, resúmenes), valorar el material y consumir contenido.  
+A medida que el proyecto crece, también aumenta la lógica que debe ejecutarse cada vez que se inserta, actualiza o consulta información.
 
-Este documento presenta el marco conceptual, las implementaciones y evidencia de funcionamiento.
+En lugar de repetir esa lógica en cada pantalla o script, se decidió concentrarla dentro del propio motor SQL Server usando:
+
+- **Procedimientos almacenados (Stored Procedures)**  
+- **Funciones definidas por el usuario (User Defined Functions)**  
+
+En este capítulo se describe el marco teórico básico y se documentan las funciones y procedimientos creados específicamente para el módulo de **Publicaciones** de UNIVIA.
 
 ---
 
 ## 2. Marco Teórico
 
-Los sistemas que manejan lógica compleja, como UNIVIA, requieren objetos SQL para organizar reglas del negocio.  
-Los dos principales son:
+En una base de datos relacional, no alcanza con “tener tablas”: también hay que decidir **dónde** se programa la lógica.  
+Una estrategia común es dejar gran parte de esa lógica en el propio servidor SQL para:
 
-- **Procedimientos almacenados (Stored Procedures)**  
-- **Funciones definidas por el usuario (User Defined Functions)**  
+- Asegurar que todos los clientes (aplicación web, app móvil, scripts de prueba) usen las mismas reglas.  
+- Validar datos **antes** de tocar las tablas.  
+- Mejorar rendimiento evitando transportar datos innecesarios.  
 
-Ambos permiten centralizar la lógica y evitar duplicación.
+Las dos herramientas estándar para esto en SQL Server son **procedimientos** y **funciones**.
 
 ---
 
-## 2.1 ¿Qué es un Procedimiento Almacenado?
+### 2.1 ¿Qué es un Procedimiento Almacenado?
 
-Un **procedimiento almacenado** es un bloque T-SQL almacenado bajo un nombre.  
-Sirve para ejecutar lógica compleja:
+Un **procedimiento almacenado** (Stored Procedure o SP) es un objeto de la base de datos que contiene un bloque de código T-SQL almacenado con un nombre.  
+Se ejecuta con `EXEC nombre_procedimiento ...` y puede incluir:
 
-- Insertar datos  
-- Actualizar o eliminar  
-- Validar condiciones  
-- Aplicar reglas del negocio  
-- Encapsular operaciones reutilizables  
+- Instrucciones `INSERT`, `UPDATE`, `DELETE`, `SELECT`.  
+- Estructuras de control (`IF`, `WHILE`, `RETURN`).  
+- Validaciones y mensajes de error.  
 
-### Tipos de procedimientos almacenados
+En UNIVIA se usan para controlar todo lo que pasa con las publicaciones: alta, modificación y baja lógica.
 
-#### a) Procedimiento sin parámetros
-Siempre ejecuta la misma tarea.
+#### Ventajas principales
+
+- **Centralización de reglas**: la validación se escribe una sola vez.  
+- **Reutilización**: cualquier módulo de la app puede llamar al mismo SP.  
+- **Seguridad**: se puede dar permiso para ejecutar el procedimiento sin otorgar acceso directo a las tablas.  
+- **Mantenimiento**: si cambia una regla, se modifica solo el SP.
+
+#### Tipos de procedimientos según parámetros
+
+En la teoría trabajamos con tres tipos básicos:
+
+##### a) Procedimiento sin parámetros
+
+Realiza siempre la misma operación.  
+Ejemplo típico en UNIVIA (solo teórico):
 
 ```sql
 CREATE PROCEDURE sp_listar_roles
 AS
 BEGIN
-    SELECT id_rol, nombre_rol FROM Rol;
+    SELECT id_rol, nombre_rol
+    FROM Rol;
 END;
 ```
 
-#### b) Procedimiento con parámetros de entrada (INPUT)
-Es el más común.
+Este SP **no necesita datos de entrada**; sirve para consultas fijas o tareas de mantenimiento.
+
+##### b) Procedimiento con parámetros de entrada (INPUT)
+
+Es el más usado. Recibe valores para trabajar (por ejemplo, los datos de una publicación a insertar).
+
+En UNIVIA, los tres procedimientos implementados pertenecen a esta categoría:
+
+- `sp_publicacion_insertar`  
+- `sp_publicacion_actualizar`  
+- `sp_publicacion_baja_logica`  
+
+Ejemplo (simplificado) de procedimiento con parámetros de entrada:
 
 ```sql
 CREATE PROCEDURE sp_publicacion_insertar
-    @titulo VARCHAR(200),
-    @descripcion VARCHAR(800),
+    @titulo       VARCHAR(200),
+    @descripcion  VARCHAR(800),
     @tipo_recurso VARCHAR(50),
-    @tipo_acceso VARCHAR(50),
-    @descargable BIT,
-    @precio DECIMAL(10,2),
-    @id_usuario INT
+    @tipo_acceso  VARCHAR(50),
+    @descargable  BIT,
+    @precio       DECIMAL(10,2),
+    @id_usuario   INT
 AS
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM Usuario WHERE id_usuario = @id_usuario)
-    BEGIN
-        PRINT 'ERROR: El usuario no existe.';
-        RETURN;
-    END;
-
-    INSERT INTO Publicacion
-        (titulo, descripcion, tipo_recurso, tipo_acceso, descargable, precio, id_usuario)
-    VALUES
-        (@titulo, @descripcion, @tipo_recurso, @tipo_acceso, @descargable, @precio, @id_usuario);
+    -- Lógica de validación + INSERT
 END;
 ```
 
-#### c) Procedimiento con parámetros de salida (OUTPUT)
+##### c) Procedimiento con parámetros de salida (OUTPUT)
 
-Devuelve un valor al exterior.
+Además de recibir datos, puede devolver resultados a través de parámetros marcados como `OUTPUT`.  
+Se usa, por ejemplo, para devolver un conteo o el ID generado.
+
+Ejemplo teórico aplicado a UNIVIA:
 
 ```sql
 CREATE PROCEDURE sp_contar_publicaciones_usuario
@@ -115,26 +138,50 @@ BEGIN
 END;
 ```
 
+Al ejecutar este SP, la aplicación obtiene en `@total` la cantidad de publicaciones del usuario.
+
 ---
 
-## 2.2 ¿Qué es una Función Definida por el Usuario?
+### 2.2 ¿Qué es una Función Definida por el Usuario?
 
-Una **función** devuelve SIEMPRE un valor y NO puede modificar datos.  
-Sirve para cálculos y valores derivados.
+Una **función definida por el usuario** (User Defined Function o UDF) es un objeto que:
 
-### Tipos de funciones
+- Siempre devuelve **un valor** (escalar o una tabla).  
+- No puede modificar datos (no hace `INSERT`, `UPDATE` ni `DELETE`).  
+- Puede usarse dentro de `SELECT`, `WHERE`, `JOIN`, etc.
 
-- **Escalar** ? devuelve un valor (las utilizadas en UNIVIA)  
-- **Inline table-valued** ? devuelve una tabla  
-- **Multisentencia** ? tabla más lógica compleja  
+En UNIVIA las funciones se utilizan para obtener **métricas** a partir de las tablas, por ejemplo:
 
-Ejemplo de UNIVIA en la siguiente sección.
+- ¿Cuántas publicaciones activas tiene un usuario?  
+- ¿Cuál es el promedio de puntuación de una publicación?
+
+#### Tipos de funciones (teoría)
+
+1. **Escalar**: devuelve un solo valor (INT, DECIMAL, VARCHAR, etc.).  
+2. **Inline table-valued**: devuelve una tabla definida por una sola consulta.  
+3. **Multisentencia table-valued**: devuelve una tabla generada con varias sentencias dentro de un bloque `BEGIN…END`.
+
+En este proyecto se implementaron **funciones escalares**, porque necesitamos un número puntual (cantidad, promedio) para mostrar en la interfaz.
 
 ---
 
 ## 3. Funciones Implementadas
 
+En la base de datos UNIVIA se definieron dos funciones escalares directamente relacionadas con el módulo de publicaciones.
+
+---
+
 ### 3.1 fn_usuario_publicaciones_activas
+
+**Objetivo funcional**
+
+Calcular cuántas publicaciones **activas** (`estado = 1`) tiene un usuario determinado.  
+Esto puede usarse, por ejemplo, en:
+
+- El perfil del usuario (“cantidad de apuntes publicados”).  
+- Controles de reputación mínima.  
+
+**Definición**
 
 ```sql
 CREATE FUNCTION fn_usuario_publicaciones_activas (@id_usuario INT)
@@ -152,9 +199,34 @@ BEGIN
 END;
 ```
 
+**Entradas**
+
+- `@id_usuario`: identificador del autor.
+
+**Salida**
+
+- Cantidad de publicaciones activas (entero).
+
+**Uso típico**
+
+```sql
+SELECT u.id_usuario,
+       u.nombre,
+       dbo.fn_usuario_publicaciones_activas(u.id_usuario) AS publicaciones_activas
+FROM Usuario AS u;
+```
+
 ---
 
 ### 3.2 fn_publicacion_promedio_puntuacion
+
+**Objetivo funcional**
+
+Obtener el **promedio de puntuación** (1 a 5) de una publicación a partir de las valoraciones cargadas en la tabla `Valoracion`.
+
+Esto permite mostrar en UNIVIA algo como: ? 4,3 sobre 5.
+
+**Definición**
 
 ```sql
 CREATE FUNCTION fn_publicacion_promedio_puntuacion (@id_publicacion INT)
@@ -171,78 +243,154 @@ BEGIN
 END;
 ```
 
+**Entradas**
+
+- `@id_publicacion`: identificador del material publicado.
+
+**Salida**
+
+- Promedio de puntuación con dos decimales.  
+  Si no tiene valoraciones, devuelve 0.
+
+**Uso típico**
+
+```sql
+SELECT p.id_publicacion,
+       p.titulo,
+       dbo.fn_publicacion_promedio_puntuacion(p.id_publicacion) AS promedio_puntuacion
+FROM Publicacion AS p;
+```
+
 ---
 
 ## 4. Procedimientos Implementados
 
+Los procedimientos trabajan sobre la tabla `Publicacion` y controlan el ciclo de vida del material compartido por los usuarios.
+
+---
+
 ### 4.1 sp_publicacion_insertar
+
+**Rol en el proyecto**
+
+Centraliza el *alta* de una publicación.  
+Antes de insertar verifica que el usuario exista y esté activo.
+
+**Definición**
 
 ```sql
 CREATE PROCEDURE sp_publicacion_insertar
-    @titulo VARCHAR(200),
-    @descripcion VARCHAR(800),
+    @titulo       VARCHAR(200),
+    @descripcion  VARCHAR(800),
     @tipo_recurso VARCHAR(50),
-    @tipo_acceso VARCHAR(50),
-    @descargable BIT,
-    @precio DECIMAL(10,2),
-    @id_usuario INT
+    @tipo_acceso  VARCHAR(50),
+    @descargable  BIT,
+    @precio       DECIMAL(10,2),
+    @id_usuario   INT
 AS
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM Usuario WHERE id_usuario = @id_usuario)
+    SET NOCOUNT ON;
+
+    -- Validación de existencia y estado del usuario
+    IF NOT EXISTS (
+        SELECT 1
+        FROM Usuario
+        WHERE id_usuario = @id_usuario
+          AND estado = 1
+    )
     BEGIN
-        PRINT 'ERROR: El usuario no existe.';
+        PRINT 'ERROR: El usuario no existe o está inactivo.';
         RETURN;
     END;
 
+    -- Inserción de la publicación
     INSERT INTO Publicacion
         (titulo, descripcion, tipo_recurso, tipo_acceso, descargable, precio, id_usuario)
     VALUES
         (@titulo, @descripcion, @tipo_recurso, @tipo_acceso, @descargable, @precio, @id_usuario);
+
+    PRINT 'Publicación insertada correctamente.';
 END;
 ```
+
+**Tipo de SP**  
+Procedimiento **con parámetros de entrada** (recibe todos los datos de la publicación).
 
 ---
 
 ### 4.2 sp_publicacion_actualizar
 
+**Rol en el proyecto**
+
+Permite modificar los datos principales de una publicación ya existente.  
+Se usa, por ejemplo, cuando el autor corrige un título o actualiza la descripción.
+
+**Definición**
+
 ```sql
 CREATE PROCEDURE sp_publicacion_actualizar
     @id_publicacion INT,
-    @titulo VARCHAR(200),
-    @descripcion VARCHAR(800),
-    @tipo_recurso VARCHAR(50),
-    @tipo_acceso VARCHAR(50),
-    @descargable BIT,
-    @precio DECIMAL(10,2)
+    @titulo         VARCHAR(200),
+    @descripcion    VARCHAR(800),
+    @tipo_recurso   VARCHAR(50),
+    @tipo_acceso    VARCHAR(50),
+    @descargable    BIT,
+    @precio         DECIMAL(10,2)
 AS
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM Publicacion WHERE id_publicacion = @id_publicacion)
+    SET NOCOUNT ON;
+
+    -- Validación de existencia de la publicación
+    IF NOT EXISTS (
+        SELECT 1
+        FROM Publicacion
+        WHERE id_publicacion = @id_publicacion
+    )
     BEGIN
         PRINT 'ERROR: La publicación no existe.';
         RETURN;
     END;
 
+    -- Actualización de campos editables
     UPDATE Publicacion
-    SET titulo = @titulo,
-        descripcion = @descripcion,
+    SET titulo       = @titulo,
+        descripcion  = @descripcion,
         tipo_recurso = @tipo_recurso,
-        tipo_acceso = @tipo_acceso,
-        descargable = @descargable,
-        precio = @precio
+        tipo_acceso  = @tipo_acceso,
+        descargable  = @descargable,
+        precio       = @precio
     WHERE id_publicacion = @id_publicacion;
+
+    PRINT 'Publicación actualizada correctamente.';
 END;
 ```
+
+**Tipo de SP**  
+Procedimiento **con parámetros de entrada**, utilizado para operaciones de actualización.
 
 ---
 
 ### 4.3 sp_publicacion_baja_logica
+
+**Rol en el proyecto**
+
+Realiza la **baja lógica** de una publicación: en vez de borrarla de la tabla, cambia el campo `estado` a 0.  
+Así se conserva el historial y se mantienen las referencias de valoraciones y mensajes.
+
+**Definición**
 
 ```sql
 CREATE PROCEDURE sp_publicacion_baja_logica
     @id_publicacion INT
 AS
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM Publicacion WHERE id_publicacion = @id_publicacion)
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (
+        SELECT 1
+        FROM Publicacion
+        WHERE id_publicacion = @id_publicacion
+    )
     BEGIN
         PRINT 'ERROR: La publicación no existe.';
         RETURN;
@@ -251,42 +399,43 @@ BEGIN
     UPDATE Publicacion
     SET estado = 0
     WHERE id_publicacion = @id_publicacion;
+
+    PRINT 'Publicación dada de baja (estado = 0).';
 END;
 ```
+
+**Tipo de SP**  
+Procedimiento **con parámetro de entrada** que ejecuta una actualización controlada sobre la tabla.
 
 ---
 
 ## 5. Pruebas y Evidencia
 
-Se ejecutaron las siguientes pruebas:
+Para comprobar el correcto funcionamiento de las funciones y procedimientos, se realizaron pruebas sobre la base **Univia**:
 
-```sql
-EXEC sp_publicacion_insertar
-    'Introducción a BD', 'Apuntes', 'PDF', 'Publico', 1, 0, 1;
+1. **Alta de un usuario y rol** (datos mínimos para poder publicar).  
+2. Ejecución de `sp_publicacion_insertar` para crear una publicación de prueba.  
+3. Ejecución de `sp_publicacion_actualizar` modificando título y descripción.  
+4. Ejecución de `sp_publicacion_baja_logica` para desactivar la publicación.  
+5. Consultas usando las funciones:
 
-EXEC sp_publicacion_actualizar
-    1, 'BD I', 'Actualizado', 'PDF', 'Publico', 1, 0;
+   ```sql
+   SELECT dbo.fn_usuario_publicaciones_activas( @id_usuario );
+   SELECT dbo.fn_publicacion_promedio_puntuacion( @id_publicacion );
+   ```
 
-EXEC sp_publicacion_baja_logica 1;
-
-SELECT dbo.fn_usuario_publicaciones_activas(1);
-SELECT dbo.fn_publicacion_promedio_puntuacion(1);
-```
-
-Todas las pruebas se ejecutaron correctamente en SQL Server.
+Los resultados obtenidos coincidieron con lo esperado (cantidad de publicaciones activas, promedio de puntuaciones, mensajes de validación, etc.), lo que valida la implementación.
 
 ---
 
 ## 6. Conclusiones
 
-El uso de procedimientos y funciones almacenadas permitió:
+El uso de **procedimientos almacenados** y **funciones definidas por el usuario** en la base de datos UNIVIA permitió:
 
-- encapsular reglas del negocio  
-- validar integridad antes de modificar datos  
-- reutilizar cálculos mediante funciones  
-- mejorar el orden y mantenimiento del código SQL  
+- Encapsular la lógica de negocio relacionada con las publicaciones.  
+- Asegurar que solo usuarios válidos puedan crear contenido.  
+- Evitar duplicar código SQL en distintas capas de la aplicación.  
+- Calcular métricas reutilizables (cantidad de publicaciones y promedio de puntuación) de forma simple y consistente.  
 
-Estos objetos son esenciales para garantizar un funcionamiento seguro y eficiente en sistemas como UNIVIA.
-
+Estos objetos son una base sólida para seguir ampliando el proyecto (por ejemplo, agregando procedimientos con parámetros de salida o nuevas funciones para estadísticas más complejas).
 ```
-

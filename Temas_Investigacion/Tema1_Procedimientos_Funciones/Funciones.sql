@@ -1,115 +1,130 @@
 USE Univia;
 GO
 
----------------------------------------------------------
--- DROP si existen
----------------------------------------------------------
-IF OBJECT_ID('sp_publicacion_insertar', 'P') IS NOT NULL
-    DROP PROCEDURE sp_publicacion_insertar;
-IF OBJECT_ID('sp_publicacion_actualizar', 'P') IS NOT NULL
-    DROP PROCEDURE sp_publicacion_actualizar;
-IF OBJECT_ID('sp_publicacion_baja_logica', 'P') IS NOT NULL
-    DROP PROCEDURE sp_publicacion_baja_logica;
+/* =========================================================
+   FUNCIONES DEFINIDAS POR EL USUARIO - UNIVIA
+   ========================================================= */
+
+------------------------------------------------------------
+-- DROP SI EXISTEN
+------------------------------------------------------------
+IF OBJECT_ID('fn_usuario_publicaciones_activas', 'FN') IS NOT NULL
+    DROP FUNCTION fn_usuario_publicaciones_activas;
+
+IF OBJECT_ID('fn_publicacion_promedio_puntuacion', 'FN') IS NOT NULL
+    DROP FUNCTION fn_publicacion_promedio_puntuacion;
 GO
 
+
 /* =========================================================
-   PROCEDIMIENTO 1: sp_publicacion_insertar
-   Inserta una nueva publicación validando usuario
+   FUNCION 1: fn_usuario_publicaciones_activas
    ========================================================= */
-CREATE PROCEDURE sp_publicacion_insertar
-    @titulo        VARCHAR(200),
-    @descripcion   VARCHAR(800),
-    @tipo_recurso  VARCHAR(50),
-    @tipo_acceso   VARCHAR(50),
-    @descargable   BIT,
-    @precio        DECIMAL(10,2),
-    @id_usuario    INT
+CREATE FUNCTION fn_usuario_publicaciones_activas
+(
+    @id_usuario INT
+)
+RETURNS INT
 AS
 BEGIN
-    SET NOCOUNT ON;
+    DECLARE @cantidad INT;
 
-    IF NOT EXISTS (
-        SELECT 1 FROM Usuario
-        WHERE id_usuario = @id_usuario
-          AND estado = 1
-    )
-    BEGIN
-        PRINT 'ERROR: El usuario no existe o está inactivo.';
-        RETURN;
-    END;
+    SELECT @cantidad = COUNT(*)
+    FROM Publicacion
+    WHERE id_usuario = @id_usuario
+      AND estado = 1;
 
-    INSERT INTO Publicacion
-        (titulo, descripcion, tipo_recurso, tipo_acceso, descargable, precio, id_usuario)
-    VALUES
-        (@titulo, @descripcion, @tipo_recurso, @tipo_acceso, @descargable, @precio, @id_usuario);
-
-    PRINT 'Publicación insertada correctamente.';
+    RETURN ISNULL(@cantidad, 0);
 END;
 GO
 
 
-/* =========================================================
-   PROCEDIMIENTO 2: sp_publicacion_actualizar
-   Actualiza una publicación existente
-   ========================================================= */
-CREATE PROCEDURE sp_publicacion_actualizar
-    @id_publicacion INT,
-    @titulo        VARCHAR(200),
-    @descripcion   VARCHAR(800),
-    @tipo_recurso  VARCHAR(50),
-    @tipo_acceso   VARCHAR(50),
-    @descargable   BIT,
-    @precio        DECIMAL(10,2)
-AS
-BEGIN
-    SET NOCOUNT ON;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM Publicacion
-        WHERE id_publicacion = @id_publicacion
-    )
-    BEGIN
-        PRINT 'ERROR: La publicación no existe.';
-        RETURN;
-    END;
-
-    UPDATE Publicacion
-    SET titulo = @titulo,
-        descripcion = @descripcion,
-        tipo_recurso = @tipo_recurso,
-        tipo_acceso = @tipo_acceso,
-        descargable = @descargable,
-        precio = @precio
-    WHERE id_publicacion = @id_publicacion;
-
-    PRINT 'Publicación actualizada correctamente.';
-END;
-GO
 
 
 /* =========================================================
-   PROCEDIMIENTO 3: sp_publicacion_baja_logica
-   Baja lógica (estado = 0)
+   FUNCION 2: fn_publicacion_promedio_puntuacion
    ========================================================= */
-CREATE PROCEDURE sp_publicacion_baja_logica
+CREATE FUNCTION fn_publicacion_promedio_puntuacion
+(
     @id_publicacion INT
+)
+RETURNS DECIMAL(5,2)
 AS
 BEGIN
-    SET NOCOUNT ON;
+    DECLARE @promedio DECIMAL(5,2);
 
-    IF NOT EXISTS (
-        SELECT 1 FROM Publicacion
-        WHERE id_publicacion = @id_publicacion
-    )
-    BEGIN
-        PRINT 'ERROR: La publicación no existe.';
-        RETURN;
-    END;
-
-    UPDATE Publicacion
-    SET estado = 0
+    SELECT @promedio = AVG(CONVERT(DECIMAL(5,2), puntuacion))
+    FROM Valoracion
     WHERE id_publicacion = @id_publicacion;
 
-    PRINT 'Publicación dada de baja (estado = 0).';
+    RETURN ISNULL(@promedio, 0);
 END;
 GO
+
+
+/* =========================================================
+   PRUEBAS (comentadas)
+   ========================================================= */
+
+-- SELECT dbo.fn_usuario_publicaciones_activas(1);
+-- SELECT dbo.fn_publicacion_promedio_puntuacion(3);
+
+
+--------------------------------------------------------------------------------
+----------PRUEBA ---------------------
+
+
+
+/* =========================================================
+   PRUEBAS Y EVIDENCIA - TEMA 1
+   ========================================================= */
+
+------------------------------------------------------------
+-- 1. Crear publicación
+------------------------------------------------------------
+EXEC sp_publicacion_insertar
+    @titulo = 'Introducción a SQL Server',
+    @descripcion = 'Apunte del módulo 1',
+    @tipo_recurso = 'Documento',
+    @tipo_acceso = 'Publico',
+    @descargable = 1,
+    @precio = 0,
+    @id_usuario = 2;
+
+  SELECT * FROM Publicacion;
+
+------------------------------------------------------------
+-- 2. Actualizar publicación
+------------------------------------------------------------
+EXEC sp_publicacion_actualizar
+    @id_publicacion = 1,
+    @titulo = 'Guía SQL I - Actualizada',
+    @descripcion = 'Versión revisada',
+    @tipo_recurso = 'Documento',
+    @tipo_acceso = 'privado',
+    @descargable = 1,
+    @precio = 0;
+
+
+------------------------------------------------------------
+-- 3. Baja lógica
+------------------------------------------------------------
+EXEC sp_publicacion_baja_logica
+    @id_publicacion = 1;
+
+
+------------------------------------------------------------
+-- 4. Usar funciones
+------------------------------------------------------------
+SELECT dbo.fn_publicacion_promedio_puntuacion(1) AS PromedioPuntuacion;
+
+SELECT dbo.fn_usuario_publicaciones_activas(2);
+
+-----------------------------------------------------------------------------------------------------
+SELECT id_publicacion, id_usuario, estado
+FROM Publicacion;
+
+
+
+SELECT * FROM Valoracion;
+INSERT INTO Valoracion (id_publicacion, id_usuario, puntuacion)
+VALUES (1, 2, 1);

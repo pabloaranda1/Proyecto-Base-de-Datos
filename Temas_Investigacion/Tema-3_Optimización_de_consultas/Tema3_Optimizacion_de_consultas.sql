@@ -6,6 +6,9 @@
    3. Consultas sin índice (baseline)
    4. Creación y prueba de índice no agrupado
    5. Creación y prueba de índice INCLUDE (índice cubriente) 
+   6. Creación y prueba de índice UNICO
+   7. Creación y prueba de índice Filtrado
+   8. Limpieza opcional
 */
 
 /*
@@ -85,20 +88,65 @@ FROM MaterialPrueba
 WHERE fecha_subida = '2024-01-15';
 GO
 
-
 /*
-
+## 6. ÍNDICE ÚNICO
+Este índice garantiza que la columna 'titulo' no tenga valores
+duplicados. En nuestra tabla de prueba, cada fila tiene un título
+único ("Apunte n"), por lo que podemos usarlo como índice Unique.
+Este tipo de índice permite búsquedas extremadamente rápidas
+cuando se consulta por un valor único.
 */
 
---Crear índice 
-CREATE
-ON
+-- Creamos índice único sobre título
+CREATE UNIQUE INDEX idx_matprueba_titulo_unique
+ON MaterialPrueba(titulo);
+GO
+
+-- Consulta utilizando el índice único
+SELECT *
+FROM MaterialPrueba
+WHERE titulo = 'Apunte 500000';
+GO
+
+/*
+7. ÍNDICE FILTRADO 
+Los índices filtrados aplican el índice solo a un subconjunto
+de filas, definido mediante una condición WHERE.
+Para esta prueba agregamos una columna 'estado' (ya que mi tabla de prueba no tiene
+una columna que me sea útil para demostrar este índice) y marcamos
+aleatoriamente algunos registros como 'Publicado' u 'Oculto'.
+Solo los registros con estado 'Publicado' serán indexados.
+*/
+
+-- Agregamos columna de estado 
+ALTER TABLE MaterialPrueba
+ADD estado NVARCHAR(20) DEFAULT 'Publicado';
+GO
+
+-- Asignamos estados aleatorios
+UPDATE MaterialPrueba
+SET estado = CASE WHEN ABS(CHECKSUM(NEWID())) % 2 = 0
+                  THEN 'Publicado' ELSE 'Oculto' END;
+GO
+
+-- Creamos índice filtrado
+CREATE NONCLUSTERED INDEX idx_matprueba_publicados
+ON MaterialPrueba(fecha_subida)
+WHERE estado = 'Publicado';
+GO
+
+-- Consulta utilizando el índice filtrado
+SELECT *
+FROM MaterialPrueba
+WHERE estado = 'Publicado'
+  AND fecha_subida = '2024-01-15';
+GO
 
 
-
-/* =============================================================
-   6. LIMPIEZA OPCIONAL (si se desea repetir las pruebas)
+/* 
+   8. LIMPIEZA OPCIONAL (si se desea repetir las pruebas)
    -------------------------------------------------------------
    DROP INDEX idx_matprueba_fecha ON MaterialPrueba;
    DROP INDEX idx_matprueba_fecha_inc ON MaterialPrueba;
-   ============================================================= */
+*/
+

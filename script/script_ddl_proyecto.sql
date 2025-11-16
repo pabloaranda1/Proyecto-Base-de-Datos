@@ -92,7 +92,7 @@ CREATE TABLE Valoracion (
 );
 
 ----------------------------------------
--- SISTEMA DE MENSAJERÕA (INBOX)
+-- SISTEMA DE MENSAJER√çA (INBOX)
 ----------------------------------------
 
 CREATE TABLE Conversacion (
@@ -126,6 +126,7 @@ CREATE TABLE Archivo_Mensaje (
     CONSTRAINT FK_Mensaje_ArchivoMensaje FOREIGN KEY (id_mensaje) REFERENCES Mensaje(id_mensaje),
     CONSTRAINT FK_Archivo_ArchivoMensaje FOREIGN KEY (id_archivo) REFERENCES id_archivo(id_archivo)
 );
+
 
 
 

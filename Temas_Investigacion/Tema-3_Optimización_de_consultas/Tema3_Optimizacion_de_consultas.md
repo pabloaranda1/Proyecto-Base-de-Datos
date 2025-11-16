@@ -122,8 +122,15 @@ Tiempo de ejecución: ms
 <img width="432" height="163" alt="image" src="https://github.com/user-attachments/assets/64ccbbdf-acba-4c83-bc7c-eba93a2d9c1c" />
 
 Interpretación:
-La consulta realiza un escaneo completo de la tabla (“Table Scan”), leyendo miles de páginas en memoria.
-Esto ocurre porque no existe ningún índice que permita filtrar rápidamente por fecha_subida.
+La consulta realiza un Clustered Index Scan, lo que significa que SQL Server recorre secuencialmente todas las páginas del índice agrupado (que en este caso es equivalente a recorrer toda la tabla).
+
+En las métricas capturadas se observa:
+
+-662 lecturas lógicas, lo que indica que SQL Server debió leer un gran número de páginas en memoria.
+-Costo estimado del 100 %, que representa el plan menos eficiente.
+-Tiempo de ejecución de ~171 ms, más alto debido a la necesidad de recorrer toda la estructura.
+
+En resumen, la consulta es lenta porque no existe un índice adecuado sobre fecha_subida, obligando al motor a examinar todos los registros para encontrar los que cumplen la condición del filtro.
 
 ### **4.2 Consulta con indice NO agrupado en fecha_subida**
 ```sql
@@ -143,14 +150,19 @@ Tiempo de ejecución: ms
 <img width="675" height="295" alt="image" src="https://github.com/user-attachments/assets/b9d6ad3c-6781-4e9a-ba9d-760956df7c62" />
 
 Interpretación:
-El motor ya no necesita escanear toda la tabla.
-Ahora realiza un Index Seek, que es muchísimo más eficiente:
+La consulta deja de realizar un escaneo completo y pasa a usar un Index Seek, lo que permite localizar rápidamente las filas que coinciden con fecha_subida.
+Sin embargo, como la consulta selecciona todas las columnas (SELECT *), SQL Server necesita obtener datos adicionales que no están dentro del índice.
+Por ese motivo aparece el operador Key Lookup dentro de un Nested Loop, lo que significa que:
+el índice encuentra los registros por fecha_subida,
+pero debe volver a la tabla base (índice clustered de la PK) para obtener las columnas faltantes.
 
--menos lecturas lógicas,
--menor uso de CPU,
--tiempo de respuesta más bajo.
+Esto genera un costo adicional, pero aun así:
+se reducen las lecturas innecesarias,
+disminuye el uso de CPU,
+el tiempo de ejecución es significativamente más bajo,
+el plan es mucho más eficiente que el Clustered Index Scan sin índice.
 
-Esto demuestra por qué los índices no agrupados son ideales para columnas utilizadas en filtros (WHERE).
+Esto demuestra por qué los índices no agrupados son ideales para acelerar búsquedas basadas en columnas del WHERE.
 
 ### **4.3 Consulta con un  índice INCLUDE (índice cubriente)**
 ```sql
@@ -169,9 +181,18 @@ Tiempo de ejecución: ms
 
 <img width="449" height="145" alt="image" src="https://github.com/user-attachments/assets/f14faefe-4c57-48b8-9acd-3dc0e2c34b12" />
 
-Este índice evita los Key Lookups, porque todas las columnas necesarias están dentro del índice.
-Esto reduce aún más el tiempo de respuesta y las lecturas lógicas.
-Es el escenario más eficiente de los tres.
+Interpretacion:
+En este caso, el índice creado sobre fecha_subida incluye también las columnas titulo y total_descargas, lo que lo convierte en un índice cubriente.
+Gracias a esto, SQL Server ya no necesita realizar Key Lookups, porque todas las columnas que requiere el SELECT están almacenadas dentro del índice.
+
+El resultado se refleja en tu plan de ejecución:
+solo aparece un Index Seek (NonClustered),
+desaparece el operador de “Búsqueda de claves”,
+no hay necesidad de acceder a la tabla base,
+se reducen aún más las lecturas lógicas,
+y el tiempo de ejecución baja notablemente (61 ms en este caso).
+
+Este es el escenario más eficiente de los tres, y muestra claramente cómo un índice INCLUDE puede cubrir completamente la consulta, evitando operaciones adicionales y mejorando al máximo el rendimiento.
 
 ## 5. Analisis de resultados
 Los resultados obtenidos muestran claramente cómo los índices impactan en el rendimiento:

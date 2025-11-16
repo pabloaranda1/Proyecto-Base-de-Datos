@@ -13,7 +13,7 @@ de datos. De esta manera, la optimización de consultas a través de índices se
 relacionales para mejorar el rendimiento y la eficiencia en el acceso a la información.
 
 
-### 2. Tipos de índices
+## 2. Tipos de índices
 Algunos tipos de inices que exiten en SQL Server son:
 1. Índice Agrupado (Clustered Index)
 
@@ -80,7 +80,7 @@ Garantiza que no existan valores repetidos.
 CREATE UNIQUE INDEX idx_usuario_email
 ON Usuario(email);
 ```
-### **3.4 Índice filtrado*
+### **3.4 Índice filtrado**
 Apunta solo a un subconjunto de datos.
 
 ```sql
@@ -96,7 +96,7 @@ CREATE NONCLUSTERED INDEX idx_fecha_total
 ON VentaMasiva(fecha)
 INCLUDE (total);
 ```
-## **3.6 Índice Columnstore**
+### **3.6 Índice Columnstore**
 Pensado para análisis y tablas muy grandes.
 
 ```sql
@@ -104,13 +104,13 @@ CREATE CLUSTERED COLUMNSTORE INDEX idx_colstore
 ON VentaMasiva;
 ```
 
-### 4. Comparación de rendimientos con y sin índices
+## 4. Comparación de rendimientos con y sin índices
 
 Para analizar el impacto real de los índices en el rendimiento de las consultas, utilicé una tabla llamada MaterialPrueba, que es una copia simplificada de la tabla Material de nuestro proyecto UNIVIA.
 Decidí trabajar sobre esta tabla para evitar sobrecargar los datos reales del sistema y poder generar una carga masiva de registros sin afectar el modelo principal. 
 Esta tabla contiene las siguientes columnas: `id_material`, `titulo`, `fecha_subida` y `total_descargas`.
 
-## 4.1 **Consulta sin índices**
+### **4.1 Consulta sin índices**
 ```sql
 SELECT *
 FROM MaterialPrueba
@@ -125,7 +125,7 @@ Interpretación:
 La consulta realiza un escaneo completo de la tabla (“Table Scan”), leyendo miles de páginas en memoria.
 Esto ocurre porque no existe ningún índice que permita filtrar rápidamente por fecha_subida.
 
-## 4.2 ** Consulta con indice NO agrupado en fecha_subida**
+### **4.2 Consulta con indice NO agrupado en fecha_subida**
 ```sql
 -- Creamos un indice no agrupado
 CREATE NONCLUSTERED INDEX idx_matprueba_fecha
@@ -152,7 +152,7 @@ Ahora realiza un Index Seek, que es muchísimo más eficiente:
 
 Esto demuestra por qué los índices no agrupados son ideales para columnas utilizadas en filtros (WHERE).
 
-## 4.3 **Consulta con un  índice INCLUDE (índice cubriente)**
+### **4.3 Consulta con un  índice INCLUDE (índice cubriente)**
 ```sql
 -- Creamos un  índice INCLUDE
 CREATE NONCLUSTERED INDEX idx_matprueba_fecha_inc
@@ -173,7 +173,7 @@ Este índice evita los Key Lookups, porque todas las columnas necesarias están 
 Esto reduce aún más el tiempo de respuesta y las lecturas lógicas.
 Es el escenario más eficiente de los tres.
 
-### 5. Analisis de resultados
+## 5. Analisis de resultados
 Los resultados obtenidos muestran claramente cómo los índices impactan en el rendimiento:
 Sin índice:
 La consulta realiza un Table Scan, leyendo toda la tabla.
@@ -189,7 +189,17 @@ El motor ya no necesita acceder a la tabla principal.
 Todos los datos están cubiertos por el índice.
 Es el plan más eficiente y el más recomendado para consultas muy frecuentes.
 
-### 6. Conclusiones
-La optimización mediante índices es una práctica fundamental en bases de datos relacionales y resulta indispensable para garantizar un rendimiento adecuado en sistemas como UNIVIA, donde las búsquedas de apuntes y materiales académicos se realizan constantemente.
+## 6. Conclusiones
+La optimización mediante índices es esencial en cualquier base de datos relacional que maneje grandes cantidades de información.
+En el contexto de UNIVIA, donde los estudiantes buscan constantemente materiales académicos, la velocidad de respuesta es clave para una buena experiencia de usuario.
 
+Los resultados muestran que:
+Los índices no agrupados mejoran significativamente el rendimiento en consultas basadas en filtros específicos.
+Los índices INCLUDE ofrecen una optimización superior al evitar accesos adicionales a la tabla, convirtiéndose en la mejor alternativa para consultas repetitivas.
+La ausencia de índices provoca Table Scans, lo cual impacta negativamente en la eficiencia y escalabilidad del sistema.
 
+En conclusión, la correcta elección, creación y mantenimiento de índices permite:
+disminuir los tiempos de ejecución,
+reducir la carga del servidor,
+mejorar el rendimiento global del sistema,
+y asegurar que aplicaciones como UNIVIA puedan manejar altas cargas de datos sin perder eficiencia.

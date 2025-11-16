@@ -1,89 +1,81 @@
-# UNIVERSIDAD NACIONAL DEL NORDESTE
-## BASES DE DATOS I – PROYECTO DE ESTUDIO
+```md
+# UNIVERSIDAD NACIONAL DEL NORDESTE  
+## BASES DE DATOS I – PROYECTO DE ESTUDIO 
 
-### Tema 1: Procedimientos y Funciones Almacenadas
+### Tema 1: Procedimientos y Funciones Almacenadas  
 **Base de datos:** Univia  
 **Grupo:** 41  
-**Año:** 2025
+**Año:** 2025  
 
 ---
 
-## ?? Tabla de Contenidos
+## Tabla de Contenidos
 
-1.  [Introducción](#1-introducción)
-2.  [Marco Teórico](#2-marco-teórico)
-    -   [2.1 ¿Qué es un Procedimiento Almacenado?](#21-qué-es-un-procedimiento-almacenado)
-    -   [2.2 ¿Qué es una Función Definida por el Usuario?](#22-qué-es-una-función-definida-por-el-usuario)
-3.  [Funciones Implementadas](#3-funciones-implementadas)
-    -   [3.1 fn_usuario_publicaciones_activas](#31-fn_usuario_publicaciones_activas)
-    -   [3.2 fn_publicacion_promedio_puntuacion](#32-fn_publicacion_promedio_puntuacion)
-4.  [Procedimientos Implementados](#4-procedimientos-implementados)
-    -   [4.1 sp_publicacion_insertar](#41-sp_publicacion_insertar)
-    -   [4.2 sp_publicacion_actualizar](#42-sp_publicacion_actualizar)
-    -   [4.3 sp_publicacion_baja_lógica](#43-sp_publicacion_baja_lógica)
-5.  [Pruebas y Evidencia](#5-pruebas-y-evidencia)
-6.  [Conclusiones](#6-conclusiones)
+1. Introducción  
+2. Marco Teórico  
+   2.1 ¿Qué es un Procedimiento Almacenado?  
+   2.2 ¿Qué es una Función Definida por el Usuario?  
+3. Funciones Implementadas  
+   3.1 fn_usuario_publicaciones_activas  
+   3.2 fn_publicacion_promedio_puntuacion  
+4. Procedimientos Implementados  
+   4.1 sp_publicacion_insertar  
+   4.2 sp_publicacion_actualizar  
+   4.3 sp_publicacion_baja_logica  
+5. Pruebas y Evidencia  
+6. Conclusiones  
 
 ---
 
 ## 1. Introducción
 
-Los procedimientos almacenados y las funciones definidas por el usuario son elementos esenciales en SQL Server para encapsular la lógica, mejorar el rendimiento y garantizar la integridad de los datos.
+En SQL Server, los procedimientos almacenados y las funciones permiten modularizar la lógica, validar datos y mejorar el rendimiento.  
+En **UNIVIA**, son utilizados para gestionar publicaciones, verificar integridad y obtener estadísticas sobre los recursos.
 
-En el proyecto **UNIVIA**, estos objetos permiten:
-
-* centralizar operaciones de negocio,
-* validar información antes de actualizar tablas,
-* calcular métricas,
-* simplificar consultas complejas,
-* mejorar seguridad y consistencia.
-
-Este documento presenta el marco teórico y la implementación de procedimientos y funciones diseñados para gestionar las **publicaciones académicas** dentro del sistema.
+Este documento presenta el marco conceptual, las implementaciones y evidencia de funcionamiento.
 
 ---
 
 ## 2. Marco Teórico
 
-En sistemas como UNIVIA, donde usuarios publican materiales, dejan valoraciones y consultan contenido, es importante organizar la lógica en el servidor para asegurar:
+Los sistemas que manejan lógica compleja, como UNIVIA, requieren objetos SQL para organizar reglas del negocio.  
+Los dos principales son:
 
-* rendimiento,
-* mantenibilidad,
-* integridad de datos,
-* seguridad.
+- **Procedimientos almacenados (Stored Procedures)**  
+- **Funciones definidas por el usuario (User Defined Functions)**  
 
-Esto se logra mediante **procedimientos almacenados** y **funciones definidas por el usuario**, que son objetos que encapsulan lógica reutilizable.
+Ambos permiten centralizar la lógica y evitar duplicación.
 
 ---
 
-### 2.1 ¿Qué es un Procedimiento Almacenado?
+## 2.1 ¿Qué es un Procedimiento Almacenado?
 
-Un **procedimiento almacenado (Stored Procedure o SP)** es un bloque de instrucciones SQL que se guarda en el servidor y se ejecuta mediante un nombre.
+Un **procedimiento almacenado** es un bloque T-SQL almacenado bajo un nombre.  
+Sirve para ejecutar lógica compleja:
 
-Los procedimientos se utilizan para:
+- Insertar datos  
+- Actualizar o eliminar  
+- Validar condiciones  
+- Aplicar reglas del negocio  
+- Encapsular operaciones reutilizables  
 
-* insertar datos,
-* actualizar registros,
-* realizar borrados lógicos,
-* validar información,
-* ejecutar operaciones complejas,
-* aplicar reglas de negocio.
+### Tipos de procedimientos almacenados
 
-#### ?? Tipos de procedimientos almacenados
+#### a) Procedimiento sin parámetros
+Siempre ejecuta la misma tarea.
 
-##### a) Procedimiento sin parámetros
-Ejecuta siempre la misma instrucción.
-
-``sql
+```sql
 CREATE PROCEDURE sp_listar_roles
 AS
 BEGIN
     SELECT id_rol, nombre_rol FROM Rol;
 END;
+```
 
-#####      b) Procedimiento con parámetros de entrada (INPUT)
-Permite enviar valores desde el exterior. Son los más utilizados y son los que implementa UNIVIA.
+#### b) Procedimiento con parámetros de entrada (INPUT)
+Es el más común.
 
-Ejemplo real del proyecto:
+```sql
 CREATE PROCEDURE sp_publicacion_insertar
     @titulo VARCHAR(200),
     @descripcion VARCHAR(800),
@@ -105,11 +97,13 @@ BEGIN
     VALUES
         (@titulo, @descripcion, @tipo_recurso, @tipo_acceso, @descargable, @precio, @id_usuario);
 END;
+```
 
-#####   c) Procedimiento con parámetros de salida (OUTPUT)
-Sirve para devolver un valor al finalizar.
+#### c) Procedimiento con parámetros de salida (OUTPUT)
 
-Ejemplo
+Devuelve un valor al exterior.
+
+```sql
 CREATE PROCEDURE sp_contar_publicaciones_usuario
     @id_usuario INT,
     @total INT OUTPUT
@@ -119,34 +113,30 @@ BEGIN
     FROM Publicacion
     WHERE id_usuario = @id_usuario;
 END;
+```
 
-##### 2.2 ¿Qué es una Función Definida por el Usuario?
-Una función (UDF) es un objeto que siempre devuelve un valor. A diferencia de los procedimientos, una función no puede modificar tablas, solo consultar datos.
+---
 
-Las funciones son útiles para:
+## 2.2 ¿Qué es una Función Definida por el Usuario?
 
-cálculos reutilizables,
+Una **función** devuelve SIEMPRE un valor y NO puede modificar datos.  
+Sirve para cálculos y valores derivados.
 
-estadísticas,
+### Tipos de funciones
 
-valores derivados,
+- **Escalar** ? devuelve un valor (las utilizadas en UNIVIA)  
+- **Inline table-valued** ? devuelve una tabla  
+- **Multisentencia** ? tabla más lógica compleja  
 
-ser usadas dentro de:
+Ejemplo de UNIVIA en la siguiente sección.
 
-SELECT
+---
 
-WHERE
+## 3. Funciones Implementadas
 
-JOIN
+### 3.1 fn_usuario_publicaciones_activas
 
-##### ?? Tipos de funciones
-##### a) Función escalar
-Devuelve un único valor. UNIVIA usa este tipo.
-
-Ejemplo real:
-
-SQL
-
+```sql
 CREATE FUNCTION fn_usuario_publicaciones_activas (@id_usuario INT)
 RETURNS INT
 AS
@@ -160,10 +150,13 @@ BEGIN
 
     RETURN ISNULL(@cantidad, 0);
 END;
-Otra función real:
+```
 
-SQL
+---
 
+### 3.2 fn_publicacion_promedio_puntuacion
+
+```sql
 CREATE FUNCTION fn_publicacion_promedio_puntuacion (@id_publicacion INT)
 RETURNS DECIMAL(5,2)
 AS
@@ -176,75 +169,15 @@ BEGIN
 
     RETURN ISNULL(@promedio, 0);
 END;
-b) Función tipo tabla (inline table-valued)
-Devuelve una tabla.
+```
 
-Ejemplo teórico:
+---
 
-SQL
+## 4. Procedimientos Implementados
 
-CREATE FUNCTION fn_publicaciones_por_usuario (@id_usuario INT)
-RETURNS TABLE
-AS
-RETURN (
-    SELECT *
-    FROM Publicacion
-    WHERE id_usuario = @id_usuario
-);
-c) Función tipo tabla multisentencia
-Permite lógica más compleja antes de devolver la tabla.
+### 4.1 sp_publicacion_insertar
 
-Ejemplo teórico:
-
-SQL
-
-CREATE FUNCTION fn_materiales_filtrados ()
-RETURNS @result TABLE (id INT, titulo VARCHAR(200))
-AS
-BEGIN
-    INSERT INTO @result
-    SELECT id_publicacion, titulo
-    FROM Publicacion
-    WHERE estado = 1;
-
-    RETURN;
-END;
-3. Funciones Implementadas
-3.1 fn_usuario_publicaciones_activas
-SQL
-
-CREATE FUNCTION fn_usuario_publicaciones_activas (@id_usuario INT)
-RETURNS INT
-AS
-BEGIN
-    DECLARE @cantidad INT;
-
-    SELECT @cantidad = COUNT(*)
-    FROM Publicacion
-    WHERE id_usuario = @id_usuario
-      AND estado = 1;
-
-    RETURN ISNULL(@cantidad, 0);
-END;
-3.2 fn_publicacion_promedio_puntuacion
-SQL
-
-CREATE FUNCTION fn_publicacion_promedio_puntuacion (@id_publicacion INT)
-RETURNS DECIMAL(5,2)
-AS
-BEGIN
-    DECLARE @promedio DECIMAL(5,2);
-
-    SELECT @promedio = AVG(CONVERT(DECIMAL(5,2), puntuacion))
-    FROM Valoracion
-    WHERE id_publicacion = @id_publicacion;
-
-    RETURN ISNULL(@promedio, 0);
-END;
-4. Procedimientos Implementados
-4.1 sp_publicacion_insertar
-SQL
-
+```sql
 CREATE PROCEDURE sp_publicacion_insertar
     @titulo VARCHAR(200),
     @descripcion VARCHAR(800),
@@ -266,9 +199,13 @@ BEGIN
     VALUES
         (@titulo, @descripcion, @tipo_recurso, @tipo_acceso, @descargable, @precio, @id_usuario);
 END;
-4.2 sp_publicacion_actualizar
-SQL
+```
 
+---
+
+### 4.2 sp_publicacion_actualizar
+
+```sql
 CREATE PROCEDURE sp_publicacion_actualizar
     @id_publicacion INT,
     @titulo VARCHAR(200),
@@ -294,9 +231,13 @@ BEGIN
         precio = @precio
     WHERE id_publicacion = @id_publicacion;
 END;
-4.3 sp_publicacion_baja_lógica
-SQL
+```
 
+---
+
+### 4.3 sp_publicacion_baja_logica
+
+```sql
 CREATE PROCEDURE sp_publicacion_baja_logica
     @id_publicacion INT
 AS
@@ -311,37 +252,41 @@ BEGIN
     SET estado = 0
     WHERE id_publicacion = @id_publicacion;
 END;
-5. Pruebas y Evidencia
-Inserción correcta:
+```
 
-SQL
+---
 
+## 5. Pruebas y Evidencia
+
+Se ejecutaron las siguientes pruebas:
+
+```sql
 EXEC sp_publicacion_insertar
-    'Introducción a BD',
-    'Apuntes módulo 1',
-    'Documento',
-    'Publico',
-    1,
-    0,
-    1;
-Resultado esperado:
+    'Introducción a BD', 'Apuntes', 'PDF', 'Publico', 1, 0, 1;
 
-Plaintext
+EXEC sp_publicacion_actualizar
+    1, 'BD I', 'Actualizado', 'PDF', 'Publico', 1, 0;
 
-Publicación insertada correctamente.
-6. Conclusiones
-Las funciones y procedimientos desarrollados permiten gestionar de manera segura, validada y organizada las publicaciones dentro del sistema UNIVIA.
+EXEC sp_publicacion_baja_logica 1;
 
-Se aplicaron buenas prácticas tales como:
+SELECT dbo.fn_usuario_publicaciones_activas(1);
+SELECT dbo.fn_publicacion_promedio_puntuacion(1);
+```
 
-validación previa de datos,
+Todas las pruebas se ejecutaron correctamente en SQL Server.
 
-encapsulación de reglas de negocio,
+---
 
-modularización del código,
+## 6. Conclusiones
 
-uso de funciones para métricas y cálculos,
+El uso de procedimientos y funciones almacenadas permitió:
 
-uso de procedimientos para operaciones CRUD.
+- encapsular reglas del negocio  
+- validar integridad antes de modificar datos  
+- reutilizar cálculos mediante funciones  
+- mejorar el orden y mantenimiento del código SQL  
 
-Estas implementaciones contribuyen directamente a la integridad y rendimiento del sistema
+Estos objetos son esenciales para garantizar un funcionamiento seguro y eficiente en sistemas como UNIVIA.
+
+```
+

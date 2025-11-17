@@ -10,9 +10,23 @@ CREATE TABLE Rol (
     nombre_rol VARCHAR(50) NOT NULL
 );
 
+CREATE TABLE Pais (
+    id_pais INT IDENTITY PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE Ciudad (
+    id_ciudad INT IDENTITY PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    id_pais INT NOT NULL,
+    CONSTRAINT FK_Pais_Ciudad FOREIGN KEY (id_pais) REFERENCES Pais(id_pais)
+);
+
 CREATE TABLE Universidad (
     id_universidad INT IDENTITY(1,1) PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL
+    id_ciudad INT NOT NULL,
+    CONSTRAINT FK_Ciudad_Universidad FOREIGN KEY (id_ciudad) REFERENCES Ciudad(id_ciudad)
 );
 
 CREATE TABLE Carrera (
@@ -29,7 +43,9 @@ CREATE TABLE Usuario (
     fecha_registro DATETIME DEFAULT GETDATE(),
     estado BIT DEFAULT 1,
     id_rol INT NOT NULL,
-    CONSTRAINT FK_Rol_Usuario FOREIGN KEY (id_rol) REFERENCES Rol(id_rol)
+    id_ciudad INT NOT NULL,
+    CONSTRAINT FK_Rol_Usuario FOREIGN KEY (id_rol) REFERENCES Rol(id_rol),
+    CONSTRAINT FK_Ciudad_Usuario FOREIGN KEY (id_ciudad) REFERENCES Ciudad(id_ciudad)
 );
 
 CREATE TABLE Perfil (
@@ -71,7 +87,7 @@ CREATE TABLE Publicacion_Carrera (
     CONSTRAINT FK_Publicacion_Publicacion_Carrera FOREIGN KEY (id_publicacion) REFERENCES Publicacion(id_publicacion)
 );
 
-CREATE TABLE id_archivo (
+CREATE TABLE Archivo (
     id_archivo INT IDENTITY(1,1) PRIMARY KEY,
     nombre VARCHAR(200),
     ruta VARCHAR(300) NOT NULL,
@@ -124,7 +140,7 @@ CREATE TABLE Archivo_Mensaje (
     id_archivo INT NOT NULL,
     CONSTRAINT PK_ArchivoMensaje PRIMARY KEY (id_mensaje, id_archivo),
     CONSTRAINT FK_Mensaje_ArchivoMensaje FOREIGN KEY (id_mensaje) REFERENCES Mensaje(id_mensaje),
-    CONSTRAINT FK_Archivo_ArchivoMensaje FOREIGN KEY (id_archivo) REFERENCES id_archivo(id_archivo)
+    CONSTRAINT FK_Archivo_ArchivoMensaje FOREIGN KEY (id_archivo) REFERENCES Archivo(id_archivo)
 );
 
 

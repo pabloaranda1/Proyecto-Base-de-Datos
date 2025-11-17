@@ -110,6 +110,64 @@ Ejemplo de una transaccion simple en nuestro sistema:
         SELECT ERROR_MESSAGE() AS ErrorSQL;
     END CATCH;
 
+Otro ejemplo:
+
+      BEGIN TRY
+        BEGIN TRANSACTION;
+    
+        INSERT INTO Usuario (nombre, apellido, email, contrasena, id_rol, id_ciudad)
+        VALUES ('Pablo', 'TransaccionOK', 'pablo_ok@univia.com', '12345', 2, 1);        -- INSERT EN USUARIO
+    
+        DECLARE @idNuevoUsuario INT = SCOPE_IDENTITY();
+    
+        
+        INSERT INTO Perfil (id_usuario, bio)
+        VALUES (@idNuevoUsuario, 'Estudiante de Sistemas'); --  INSERT EN PERFIL
+    
+        
+        UPDATE Usuario
+        SET apellido = 'ActualizadoEnTransaccion'
+        WHERE id_usuario = 2;         --  UPDATE (usuario existente: Juan Pérez → id = 2)
+    
+        COMMIT;
+  
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+    
+        SELECT ERROR_MESSAGE() AS ErrorSQL;
+    END CATCH;
+
+Todo los cambios se confirman correctamente, se hace el UPDATE.
+La transacción completa finaliza con COMMIT.
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+    
+        INSERT INTO Usuario (nombre, apellido, email, contrasena, id_rol, id_ciudad)
+        VALUES ('Pablo', 'Rollback', 'pablo_error@univia.com', '12345', 2, 1);
+    
+        DECLARE @idNuevo INT = SCOPE_IDENTITY();
+    
+        
+        INSERT INTO Perfil (id_usuario, bio)
+        VALUES (@idNuevo + 999999, 'Este perfil debe fallar'); -- ERROR INTENCIONAL: violación de FK
+    
+        
+        UPDATE Usuario
+        SET apellido = 'NoDeberiaActualizar'
+        WHERE id_usuario = 2;             -- NO SE EJECUTA
+    
+        COMMIT;
+    
+    END TRY
+    BEGIN CATCH
+        ROLLBACK;
+    
+        SELECT ERROR_MESSAGE() AS ErrorSQL;
+    END CATCH;
+
+NO queda insertado el usuario, NI el perfi, debido al error en este ultimo insert. Tampoco se ejecutara el update.
 
 ## 6. Aislamiento y Bloqueos (Isolation Levels)
 
@@ -228,3 +286,4 @@ El uso adecuado de transacciones es fundamental para garantizar integridad, rend
 Las transacciones son un componente esencial en cualquier sistema que requiera fiabilidad, integridad y consistencia de los datos. Permiten que una serie de operaciones relacionadas se ejecuten como una unidad indivisible, asegurando que los cambios se apliquen completamente o no se apliquen en absoluto.
 Los distintos modos de transacción, junto con los niveles de aislamiento, ofrecen herramientas poderosas para manejar concurrencia, evitar problemas de lectura y garantizar estabilidad incluso en escenarios complejos. El uso de TRY/CATCH, savepoints y transacciones anidadas brinda un control granular sobre el flujo de ejecución, permitiendo manejar errores de manera robusta.
 Un diseño correcto de transacciones mejora la seguridad y confiabilidad de la base de datos; sin embargo, requiere equilibrio para evitar bloqueos excesivos, pérdida de concurrencia o deterioro de rendimiento. Con una estrategia adecuada, las transacciones se convierten en un pilar fundamental para el funcionamiento consistente y seguro de cualquier sistema de información.
+

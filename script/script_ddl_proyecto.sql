@@ -1,7 +1,7 @@
-CREATE DATABASE UniviaDB;
+CREATE DATABASE Univia;
 GO
 
-USE UniviaDB;
+USE Univia;
 GO
 
 

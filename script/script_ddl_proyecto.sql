@@ -1,13 +1,13 @@
-CREATE DATABASE Univia;
+CREATE DATABASE UniviaDB;
 GO
 
-USE Univia;
+USE UniviaDB;
 GO
 
 
 CREATE TABLE Rol (
     id_rol INT IDENTITY(1,1) PRIMARY KEY,
-    nombre_rol VARCHAR(50) NOT NULL
+    nombre VARCHAR(50) NOT NULL
 );
 
 CREATE TABLE Pais (
@@ -94,7 +94,9 @@ CREATE TABLE Publicacion (
     id_usuario INT NOT NULL,
     CONSTRAINT FK_Usuario_Publicacion FOREIGN KEY (id_usuario) REFERENCES Usuario(id_usuario),
     CONSTRAINT CHK_Publicacion_Precio CHECK (precio >= 0),
-    CONSTRAINT CHK_Publicacion_Descargable CHECK (descargable ININ (0,1)),
+    CONSTRAINT CHK_Publicacion_Descargable CHECK (descargable IN (0,1)),
+    CONSTRAINT CHK_Publicacion_TipoRecurso CHECK (tipo_recurso IN ('archivo','libro_fisico','apunte_fisico','otro')),
+    CONSTRAINT CHK_Publicacion_TipoAcceso CHECK (tipo_acceso IN ('publico','privado'))
 );
 
 CREATE TABLE Publicacion_Carrera (

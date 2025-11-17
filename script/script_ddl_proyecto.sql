@@ -11,12 +11,12 @@ CREATE TABLE Rol (
 );
 
 CREATE TABLE Pais (
-    id_pais INT IDENTITY PRIMARY KEY,
+    id_pais INT IDENTITY(1, 1) PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL UNIQUE
 );
 
 CREATE TABLE Ciudad (
-    id_ciudad INT IDENTITY PRIMARY KEY,
+    id_ciudad INT IDENTITY(1, 1) PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL,
     id_pais INT NOT NULL,
     CONSTRAINT FK_Pais_Ciudad FOREIGN KEY (id_pais) REFERENCES Pais(id_pais)

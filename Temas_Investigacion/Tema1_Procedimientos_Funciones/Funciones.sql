@@ -13,11 +13,15 @@ IF OBJECT_ID('fn_usuario_publicaciones_activas', 'FN') IS NOT NULL
 
 IF OBJECT_ID('fn_publicacion_promedio_puntuacion', 'FN') IS NOT NULL
     DROP FUNCTION fn_publicacion_promedio_puntuacion;
+
+IF OBJECT_ID('fn_cantidad_valoraciones_publicacion', 'FN') IS NOT NULL
+    DROP FUNCTION fn_cantidad_valoraciones_publicacion;
 GO
 
 
 /* =========================================================
-   FUNCION 1: fn_usuario_publicaciones_activas
+   FUNCIÓN 1: fn_usuario_publicaciones_activas
+   - Devuelve cantidad de publicaciones ACTIVAS de un usuario
    ========================================================= */
 CREATE FUNCTION fn_usuario_publicaciones_activas
 (
@@ -38,10 +42,9 @@ END;
 GO
 
 
-
-
 /* =========================================================
-   FUNCION 2: fn_publicacion_promedio_puntuacion
+   FUNCIÓN 2: fn_publicacion_promedio_puntuacion
+   - Devuelve promedio de puntuación (1 a 5) de una publicación
    ========================================================= */
 CREATE FUNCTION fn_publicacion_promedio_puntuacion
 (
@@ -62,69 +65,71 @@ GO
 
 
 /* =========================================================
-   PRUEBAS (comentadas)
+   FUNCIÓN 3: fn_cantidad_valoraciones_publicacion
+   - Devuelve cuántas valoraciones tiene una publicación
    ========================================================= */
+CREATE FUNCTION fn_cantidad_valoraciones_publicacion
+(
+    @id_publicacion INT
+)
+RETURNS INT
+AS
+BEGIN
+    DECLARE @cantidad INT;
 
--- SELECT dbo.fn_usuario_publicaciones_activas(1);
--- SELECT dbo.fn_publicacion_promedio_puntuacion(3);
+    SELECT @cantidad = COUNT(*)
+    FROM Valoracion
+    WHERE id_publicacion = @id_publicacion;
 
-
---------------------------------------------------------------------------------
-----------PRUEBA ---------------------
-
+    RETURN ISNULL(@cantidad, 0);
+END;
+GO
 
 
 /* =========================================================
-   PRUEBAS Y EVIDENCIA - TEMA 1
+   PRUEBAS Y EVIDENCIA DE USO DE FUNCIONES
    ========================================================= */
 
-------------------------------------------------------------
--- 1. Crear publicación
-------------------------------------------------------------
-EXEC sp_publicacion_insertar
-    @titulo = 'Introducción a SQL Server',
-    @descripcion = 'Apunte del módulo 1',
-    @tipo_recurso = 'Documento',
-    @tipo_acceso = 'Publico',
-    @descargable = 1,
-    @precio = 0,
-    @id_usuario = 2;
+-- Cantidad de publicaciones activas por usuario
+SELECT u.id_usuario,
+       u.nombre,
+       dbo.fn_usuario_publicaciones_activas(u.id_usuario) AS publicaciones_activas
+FROM Usuario AS u;
 
-  SELECT * FROM Publicacion;
+-- Promedio de puntuación por publicación
+SELECT p.id_publicacion,
+       p.titulo,
+       dbo.fn_publicacion_promedio_puntuacion(p.id_publicacion) AS promedio_puntuacion
+FROM Publicacion AS p;
 
-------------------------------------------------------------
--- 2. Actualizar publicación
-------------------------------------------------------------
-EXEC sp_publicacion_actualizar
-    @id_publicacion = 1,
-    @titulo = 'Guía SQL I - Actualizada',
-    @descripcion = 'Versión revisada',
-    @tipo_recurso = 'Documento',
-    @tipo_acceso = 'privado',
-    @descargable = 1,
-    @precio = 0;
+-- Cantidad de valoraciones por publicación
+SELECT p.id_publicacion,
+       p.titulo,
+       dbo.fn_cantidad_valoraciones_publicacion(p.id_publicacion) AS cantidad_valoraciones
+FROM Publicacion AS p;
 
 
-------------------------------------------------------------
--- 3. Baja lógica
-------------------------------------------------------------
-EXEC sp_publicacion_baja_logica
-    @id_publicacion = 1;
+ /* =========================================================
+    COMPARACIÓN DE EFICIENCIA: CONSULTA DIRECTA vs FUNCIÓN
+  
+    ========================================================= */
 
+  SET STATISTICS TIME ON;
+  SET STATISTICS IO ON;
 
 ------------------------------------------------------------
--- 4. Usar funciones
+-- PROMEDIO DE PUNTUACIÓN - CONSULTA DIRECTA
 ------------------------------------------------------------
-SELECT dbo.fn_publicacion_promedio_puntuacion(1) AS PromedioPuntuacion;
+ SELECT id_publicacion,
+        AVG(CONVERT(DECIMAL(5,2), puntuacion)) AS PromedioDirecto
+ FROM Valoracion
+ WHERE id_publicacion = 1
+ GROUP BY id_publicacion;
 
-SELECT dbo.fn_usuario_publicaciones_activas(2);
+------------------------------------------------------------
+-- PROMEDIO DE PUNTUACIÓN - USANDO FUNCIÓN ESCALAR
+------------------------------------------------------------
+ SELECT dbo.fn_publicacion_promedio_puntuacion(1) AS PromedioFuncion;
 
------------------------------------------------------------------------------------------------------
-SELECT id_publicacion, id_usuario, estado
-FROM Publicacion;
-
-
-
-SELECT * FROM Valoracion;
-INSERT INTO Valoracion (id_publicacion, id_usuario, puntuacion)
-VALUES (1, 2, 1);
+ SET STATISTICS TIME OFF;
+ SET STATISTICS IO OFF;

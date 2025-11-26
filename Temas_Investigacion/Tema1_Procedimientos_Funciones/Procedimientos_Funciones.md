@@ -17,11 +17,19 @@
 3. [Funciones Implementadas](#3-funciones-implementadas)  
    - [3.1 fn_usuario_publicaciones_activas](#31-fn_usuario_publicaciones_activas)  
    - [3.2 fn_publicacion_promedio_puntuacion](#32-fn_publicacion_promedio_puntuacion)  
+   - [3.3 fn_cantidad_valoraciones_publicacion](#33-fn_cantidad_valoraciones_publicacion) 
 4. [Procedimientos Implementados](#4-procedimientos-implementados)  
    - [4.1 sp_publicacion_insertar](#41-sp_publicacion_insertar)  
    - [4.2 sp_publicacion_actualizar](#42-sp_publicacion_actualizar)  
    - [4.3 sp_publicacion_baja_logica](#43-sp_publicacion_baja_logica)  
 5. [Pruebas y Evidencia](#5-pruebas-y-evidencia)  
+   - [5.1 Pruebas de funciones](#51-pruebas-de-funciones)  
+   - [5.2 Lote de inserts directos (sin procedimientos)](#52-lote-de-inserts-directos-sin-procedimientos)  
+   - [5.3 Lote de inserts vía procedimientos](#53-lote-de-inserts-vía-procedimientos)  
+   - [5.4 Update sobre registros insertados (vía procedimiento)](#54-update-sobre-registros-insertados-vía-procedimiento)  
+   - [5.5 Delete (baja lógica) sobre registros insertados (vía procedimiento)](#55-delete-baja-lógica-sobre-registros-insertados-vía-procedimiento)  
+   - [5.6 Comparación de eficiencia: insert directo vs procedimiento](#56-comparación-de-eficiencia-insert-directo-vs-procedimiento)  
+   - [5.7 Comparación de eficiencia: consulta directa vs función escalar](#57-comparación-de-eficiencia-consulta-directa-vs-función-escalar)  
 6. [Conclusiones](#6-conclusiones)  
 
 ---
@@ -257,6 +265,45 @@ FROM Publicacion AS p;
 ```
 
 ---
+### 3.3 fn_cantidad_valoraciones_publicacion
+
+**Objetivo funcional**
+
+Obtener **cuántas valoraciones** (cantidad de registros en `Valoracion`) tiene una publicación.  
+Esta métrica complementa al promedio de puntuación: no es lo mismo un promedio de 5 con 1 valoración que con 100 valoraciones.
+
+**Definición**
+
+    CREATE FUNCTION fn_cantidad_valoraciones_publicacion (@id_publicacion INT)
+    RETURNS INT
+    AS
+    BEGIN
+        DECLARE @cantidad INT;
+
+        SELECT @cantidad = COUNT(*)
+        FROM Valoracion
+        WHERE id_publicacion = @id_publicacion;
+
+        RETURN ISNULL(@cantidad, 0);
+    END;
+
+**Entradas**
+
+- `@id_publicacion`: identificador de la publicación.
+
+**Salida**
+
+- Cantidad total de valoraciones (entero).  
+  Si no tiene valoraciones, devuelve 0.
+
+**Uso típico**
+
+    SELECT p.id_publicacion,
+           p.titulo,
+           dbo.fn_cantidad_valoraciones_publicacion(p.id_publicacion) AS cantidad_valoraciones
+    FROM Publicacion AS p;
+
+---
 
 ## 4. Procedimientos Implementados
 
@@ -403,23 +450,202 @@ END;
 Procedimiento **con parámetro de entrada** que ejecuta una actualización controlada sobre la tabla.
 
 ---
-
 ## 5. Pruebas y Evidencia
 
-Para comprobar el correcto funcionamiento de las funciones y procedimientos, se realizaron pruebas sobre la base **Univia**:
+Para comprobar el correcto funcionamiento de las funciones y procedimientos, se realizaron pruebas sobre la base **Univia**, cumpliendo con todas las tareas pedidas:
 
-1. **Alta de un usuario y rol** (datos mínimos para poder publicar).  
-2. Ejecución de `sp_publicacion_insertar` para crear una publicación de prueba.  
-3. Ejecución de `sp_publicacion_actualizar` modificando título y descripción.  
-4. Ejecución de `sp_publicacion_baja_logica` para desactivar la publicación.  
-5. Consultas usando las funciones:
+- Uso de **al menos tres procedimientos**: insertar, modificar, baja lógica.  
+- **Lote de inserts directos** y **lote de inserts vía procedimientos**.  
+- **Update** y **delete (baja lógica)** sobre registros insertados usando procedimientos.  
+- **Al menos tres funciones**: publicaciones activas, promedio de puntuación y cantidad de valoraciones.  
+- **Comparación de eficiencia** de operaciones directas versus uso de procedimientos y funciones, usando `SET STATISTICS TIME` y `SET STATISTICS IO`.
 
-   ```sql
-   SELECT dbo.fn_usuario_publicaciones_activas( @id_usuario );
-   SELECT dbo.fn_publicacion_promedio_puntuacion( @id_publicacion );
-   ```
+---
 
-Los resultados obtenidos coincidieron con lo esperado (cantidad de publicaciones activas, promedio de puntuaciones, mensajes de validación, etc.), lo que valida la implementación.
+
+### 5.1 Pruebas de funciones
+
+Se ejecutaron consultas para verificar el resultado de cada función:
+
+- Cantidad de publicaciones activas por usuario.  
+- Promedio de puntuación por publicación.  
+- Cantidad total de valoraciones por publicación.
+
+Ejemplos de uso:
+
+    -- Cantidad de publicaciones activas por usuario
+    SELECT u.id_usuario,
+           u.nombre,
+           dbo.fn_usuario_publicaciones_activas(u.id_usuario) AS publicaciones_activas
+    FROM Usuario AS u;
+
+    -- Promedio de puntuación por publicación
+    SELECT p.id_publicacion,
+           p.titulo,
+           dbo.fn_publicacion_promedio_puntuacion(p.id_publicacion) AS promedio_puntuacion
+    FROM Publicacion AS p;
+
+    -- Cantidad total de valoraciones por publicación
+    SELECT p.id_publicacion,
+           p.titulo,
+           dbo.fn_cantidad_valoraciones_publicacion(p.id_publicacion) AS cantidad_valoraciones
+    FROM Publicacion AS p;
+
+---
+
+### 5.2 Lote de inserts directos (sin procedimientos)
+
+Para cumplir con “Insertar un lote de datos con sentencias INSERT”, se cargaron varias publicaciones directamente:
+
+    INSERT INTO Publicacion
+    (titulo, descripcion, tipo_recurso, tipo_acceso, descargable, precio, id_usuario)
+    VALUES
+    ('Apunte Matemática Discreta', 'Resumen examen final', 'archivo', 'publico', 1, 0, 2),
+    ('Guía Base de Datos I', 'Guía con ejercicios resueltos', 'archivo', 'privado', 1, 0, 3),
+    ('Física II - Problemas', 'Colección de problemas resueltos', 'archivo', 'publico', 1, 0, 1);
+
+---
+
+### 5.3 Lote de inserts vía procedimientos
+
+Para el punto “otro lote invocando a los procedimientos creados”, se ejecutaron tres altas usando `sp_publicacion_insertar`:
+
+    EXEC sp_publicacion_insertar
+        @titulo = 'Manual de Programación II',
+        @descripcion = 'Ejercicios de repaso',
+        @tipo_recurso = 'archivo',
+        @tipo_acceso = 'publico',
+        @descargable = 1,
+        @precio = 0,
+        @id_usuario = 2;
+
+    EXEC sp_publicacion_insertar
+        @titulo = 'Resumen de Estadística',
+        @descripcion = 'Incluye teoría y ejercicios',
+        @tipo_recurso = 'archivo',
+        @tipo_acceso = 'publico',
+        @descargable = 1,
+        @precio = 0,
+        @id_usuario = 2;
+
+    EXEC sp_publicacion_insertar
+        @titulo = 'Apuntes de Arquitectura de Computadoras',
+        @descripcion = 'Unidad 1 a 5',
+        @tipo_recurso = 'archivo',
+        @tipo_acceso = 'privado',
+        @descargable = 1,
+        @precio = 0,
+        @id_usuario = 2;
+
+---
+
+### 5.4 Update sobre registros insertados (vía procedimiento)
+
+Se probó la modificación de una publicación usando `sp_publicacion_actualizar`.  
+Antes y después del `EXEC` se consulta el mismo registro para evidenciar el cambio.
+
+    -- Antes del UPDATE
+    SELECT id_publicacion, titulo, descripcion, tipo_acceso, estado
+    FROM Publicacion
+    WHERE id_publicacion = 1;
+
+    EXEC sp_publicacion_actualizar
+        @id_publicacion = 1,
+        @titulo = 'Apunte Matemática Discreta (Actualizado)',
+        @descripcion = 'Resumen actualizado con nuevos ejercicios',
+        @tipo_recurso = 'archivo',
+        @tipo_acceso = 'publico',
+        @descargable = 1,
+        @precio = 0;
+
+    -- Después del UPDATE
+    SELECT id_publicacion, titulo, descripcion, tipo_acceso, estado
+    FROM Publicacion
+    WHERE id_publicacion = 1;
+
+---
+
+### 5.5 Delete (baja lógica) sobre registros insertados (vía procedimiento)
+
+En lugar de borrar físicamente, se hace una baja lógica cambiando el campo `estado` a 0 mediante `sp_publicacion_baja_logica`:
+
+    -- Antes de la baja lógica
+    SELECT id_publicacion, titulo, estado
+    FROM Publicacion
+    WHERE id_publicacion = 5;
+
+    EXEC sp_publicacion_baja_logica
+        @id_publicacion = 5;
+
+    -- Después de la baja lógica
+    SELECT id_publicacion, titulo, estado
+    FROM Publicacion
+    WHERE id_publicacion = 5;
+
+---
+
+### 5.6 Comparación de eficiencia: insert directo vs procedimiento
+
+Para comparar la eficiencia entre un `INSERT` directo y un `INSERT` vía procedimiento almacenado, se activaron las estadísticas de tiempo y E/S:
+
+    SET STATISTICS TIME ON;
+    SET STATISTICS IO ON;
+
+    ------------------------------------------------------------
+    -- INSERT DIRECTO (SIN PROCEDIMIENTO)
+    ------------------------------------------------------------
+    PRINT '--- INSERT DIRECTO ---';
+
+    INSERT INTO Publicacion
+    (titulo, descripcion, tipo_recurso, tipo_acceso, descargable, precio, id_usuario)
+    VALUES
+    ('Prueba eficiencia directa', 'Insert directo sin SP', 'archivo', 'publico', 1, 0, 2);
+
+    ------------------------------------------------------------
+    -- INSERT VIA PROCEDIMIENTO ALMACENADO
+    ------------------------------------------------------------
+    PRINT '--- INSERT VIA PROCEDIMIENTO ---';
+
+    EXEC sp_publicacion_insertar
+        @titulo = 'Prueba eficiencia SP',
+        @descripcion = 'Insert usando procedimiento almacenado',
+        @tipo_recurso = 'archivo',
+        @tipo_acceso = 'publico',
+        @descargable = 1,
+        @precio = 0,
+        @id_usuario = 2;
+
+    SET STATISTICS TIME OFF;
+    SET STATISTICS IO OFF;
+
+En las salidas se observa que el procedimiento almacenado puede implicar un pequeño costo extra de compilación, pero permite centralizar validaciones y lógica de negocio, lo cual es más importante que la diferencia mínima de tiempo en este contexto académico.
+
+---
+
+### 5.7 Comparación de eficiencia: consulta directa vs función escalar
+
+También se comparó la obtención del promedio de puntuación de una publicación de dos maneras:
+
+1. Consulta directa con `AVG()` sobre la tabla `Valoracion`.  
+2. Llamando a la función escalar `fn_publicacion_promedio_puntuacion`.
+
+    SET STATISTICS TIME ON;
+    SET STATISTICS IO ON;
+
+    -- PROMEDIO DE PUNTUACIÓN - CONSULTA DIRECTa
+    SELECT id_publicacion,
+           AVG(CONVERT(DECIMAL(5,2), puntuacion)) AS PromedioDirecto
+    FROM Valoracion
+    WHERE id_publicacion = 1
+    GROUP BY id_publicacion;
+
+    -- PROMEDIO DE PUNTUACIÓN - USANDO FUNCIÓN ESCALAR
+    SELECT dbo.fn_publicacion_promedio_puntuacion(1) AS PromedioFuncion;
+
+    SET STATISTICS TIME OFF;
+    SET STATISTICS IO OFF;
+
+En bases pequeñas, los tiempos suelen ser similares. Sin embargo, la función aporta **reutilización** y **claridad**: la misma lógica se puede usar en muchos SELECT sin repetir la expresión `AVG(...)`.
 
 ---
 

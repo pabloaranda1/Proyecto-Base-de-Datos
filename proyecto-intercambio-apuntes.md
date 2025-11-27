@@ -1,6 +1,7 @@
-## Universidad Nacional del Nordeste
+# Universidad Nacional del Nordeste
+## Facultad de Ciencias Exactas y Naturales y Agrimensura
 
-# Sistema de intercambio de apuntes
+# PROYECTO: Sistema de intercambio de apuntes
 
 ### Participantes:
 - Acosta, Lara
@@ -8,11 +9,33 @@
 - Benitez, Valentina
 - Bolo, Tomas
 
-**Profesor:** Dario O. VILLEGAS  
+**Profesor de Catedra:** Dario Villegas 
+
 **Materia:** Base de Datos  
 **Carrera:** Licenciatura en Sistemas de Información  
+**Fecha:** 11 de Noviembre de 2025
 
-# CAPÍTULO I: INTRODUCCIÓN.
+---
+
+## ÍNDICE
+
+1. [CAPÍTULO I: INTRODUCCIÓN](#capítulo-i-introducción)
+    - [1.2. Tema del sistema](#12-tema-del-sistema)
+    - [1.3. Planteamiento del problema](#13-planteamiento-del-problema)
+    - [1.4. Objetivo del trabajo práctico](#14-objetivo-del-trabajo-práctico)
+2. [CAPÍTULO II: MARCO CONCEPTUAL O REFERENCIAL](#capítulo-ii--marco-conceptual-o-referencial)
+    - [2.1 Modelo relacional y normalización](#21-modelo-relacional-y-normalización)
+    - [2.2 Manejo de permisos y roles](#22-manejo-de-permisos-y-roles-en-bases-de-datos)
+    - [2.3 Procedimientos y funciones](#23-procedimientos-y-funciones-almacenadas)
+    - [2.4 Optimización con índices](#24-optimización-de-consultas-con-índices)
+3. [CAPÍTULO III: METODOLOGÍA SEGUIDA](#capítulo-iii--metodología-seguida)
+4. [CAPÍTULO IV: DESARROLLO DEL TEMA / RESULTADOS](#capítulo-iv--desarrollo-del-tema--resultados)
+5. [CAPÍTULO V: CONCLUSIONES](#capítulo-v--conclusiones)
+6. [CAPÍTULO VI: BIBLIOGRAFÍA](#capítulo-vi--bibliografía)
+
+---
+
+# CAPÍTULO I: INTRODUCCIÓN
 
 ## 1.2. Tema del sistema
 
@@ -72,14 +95,65 @@ Un índice es una estructura que acelera la recuperación de información en una
 La principal ventaja de los índices es que mejoran notablemente el rendimiento en búsquedas frecuentes o sobre grandes volúmenes de datos. Sin embargo, también generan un costo en almacenamiento y actualizaciones, por lo que deben diseñarse con criterio.
 Los índices resultan clave para la optimizacion de las consultas relacionadas con la búsqueda de materiales. Dado que los usuarios suelen filtrar por carrera, materia o tipo de archivo, contar con índices adecuados permitirá acelerar estas operaciones y mejorar la experiencia de uso de la plataforma.
 
-# CAPÍTULO IV – MARCO CONCEPTUAL O REFERENCIAL 
+# CAPÍTULO III – METODOLOGÍA SEGUIDA
 
-## Diagrama relacional 
+## 3.1 Descripción del proceso de realización
+
+Para la elaboración del presente Trabajo Práctico, el equipo siguió un enfoque estructurado dividido en varias etapas, asegurando la cobertura de todos los requisitos de la cátedra:
+
+1.  **Análisis de Requisitos:** Se comenzó con reuniones grupales para definir el alcance del sistema de intercambio de apuntes. Se identificaron los actores principales (estudiantes y administradores) y los objetos de negocio (apuntes, materias, carreras).
+2.  **Diseño Conceptual:** Se elaboró un Diagrama Entidad-Relación (DER) preliminar para visualizar las entidades y sus interacciones.
+3.  **Diseño Lógico y Normalización:** Se transformó el DER al modelo relacional, aplicando las reglas de normalización (1FN, 2FN, 3FN) para eliminar redundancias y asegurar la integridad de los datos.
+4.  **Implementación y Documentación:** Se procedió a la definición del diccionario de datos y la creación de los diagramas finales utilizando herramientas de software específicas.
+
+Entre las dificultades encontradas, destacó la definición correcta de la cardinalidad en la relación entre "Usuarios" y "Materiales" para gestionar el historial de descargas sin duplicar información innecesaria, lo cual se resolvió mediante una tabla intermedia de transacciones.
+
+## 3.2 Herramientas e Instrumentos utilizados
+
+Para la recolección de información y el desarrollo técnico del proyecto se utilizaron los siguientes recursos:
+
+* **Bibliografía de Cátedra:** Para la fundamentación teórica del Capítulo II.
+* **Software de Diagramación:** Se utilizaron herramientas CASE (como *Draw.io* o *Microsoft Visio*) para la confección del diagrama relacional.
+* **Motor de Base de Datos:** Se consultó la documentación de *SQL Server* para validar la sintaxis de tipos de datos y restricciones.
+* **Procesadores de Texto:** Para la redacción y maquetación del informe final en formato Markdown y PDF.
+
+# CAPÍTULO IV – DESARROLLO DEL TEMA / RESULTADOS
+
+## 4.1 Descripción del Modelo Propuesto
+
+Como resultado del análisis, se ha diseñado un esquema de base de datos relacional que soporta todas las operaciones de la plataforma. El núcleo del sistema gira en torno a tres entidades fuertes: `Usuario`, `Materia` y `Carrera`.
+
+La gestión de los archivos se realiza a través de la entidad `Material`, la cual posee claves foráneas que la vinculan tanto al usuario que la subió como a la materia a la que pertenece. Esto permite realizar consultas complejas, como filtrar apuntes por carrera o listar los aportes de un estudiante específico.
+
+## 4.2 Diagrama relacional 
+
+A continuación, se presenta el esquema gráfico que ilustra las tablas, claves primarias (PK), claves foráneas (FK) y la cardinalidad de las relaciones:
 
 ![Modelo relacional](doc/modelo_relacional.jpg)
 
-## Diccionario de datos
+## 4.3 Diccionario de datos
+
+Para garantizar la correcta implementación física de la base de datos, se ha elaborado un diccionario de datos detallado. En este documento se especifican:
+* Nombres de tablas y columnas.
+* Tipos de datos (int, varchar, date, etc.).
+* Restricciones de integridad (NOT NULL, UNIQUE).
+* Descripciones funcionales de cada campo.
 
 [Ver documento PDF - DICCIONARIO DE DATOS](doc/diccionario_datos.pdf)
 
+# CAPÍTULO V – CONCLUSIONES
 
+Tras finalizar el diseño y modelado de la base de datos para el sistema de intercambio de apuntes, se puede concluir que se han alcanzado satisfactoriamente los objetivos planteados al inicio del proyecto.
+
+El modelo relacional obtenido cumple con los principios de normalización, lo que garantiza que la base de datos sea robusta frente a anomalías de actualización y redundancia de datos. La correcta definición de claves primarias y foráneas asegura la integridad referencial, impidiendo, por ejemplo, que existan materiales huérfanos sin una materia asociada.
+
+Asimismo, la investigación realizada en el marco conceptual sobre procedimientos almacenados y roles ha permitido diseñar teóricamente un entorno seguro, donde los privilegios de administración están claramente separados de los de uso general.
+
+En conclusión, nuestro proyecto propuesto no solo resuelve la problemática de organización de material académico, sino que también sienta una base sólida para el desarrollo futuro de la aplicación, permitiendo la integración de nuevas funcionalidades sin requerir cambios estructurales drásticos.
+
+# CAPÍTULO VI – BIBLIOGRAFÍA
+
+
+* Elmasri, R., & Navathe, S. B. (2007). *Fundamentos de Sistemas de Bases de Datos* (5ta ed.). Pearson Educación.
+* Microsoft. (2025). *Documentación técnica de SQL Server*. Recuperado de [https://learn.microsoft.com/es-es/sql/](https://learn.microsoft.com/es-es/sql/)
+* Date, C. J. (2001). *Introducción a los Sistemas de Bases de Datos*. Pearson Educación.
